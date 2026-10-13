@@ -180,6 +180,24 @@ import Testing
         #expect(try row("Quit", of: app).isEnabled)
     }
 
+    @Test func theClickThroughRowHasACheckMarkOnlyInModeClickThrough() throws {
+        let app = startApp()
+        let clickThroughRow = try row("Click through", of: app)
+        #expect(clickThroughRow.state == .off)
+        draw.toggleDrawing()
+        #expect(clickThroughRow.state == .off)
+        draw.toggleClickThrough()
+        #expect(clickThroughRow.state == .on)
+        draw.toggleClickThrough()
+        #expect(clickThroughRow.state == .off)
+        // The draw hotkey in mode click-through turns drawing off, and the check mark goes away.
+        draw.toggleClickThrough()
+        draw.toggleDrawing()
+        #expect(clickThroughRow.state == .off)
+        // No other row has a check mark.
+        #expect(app.statusMenu.menu.items.allSatisfy { $0.state == .off })
+    }
+
     /// The menu follows the mode that the drawing part has when the app starts.
     @Test func theMenuShowsTheModeOfTheDrawingPartAtTheStart() throws {
         draw.toggleDrawing()
