@@ -166,7 +166,19 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     /// Shows the window in front of other apps. A second call shows the same window.
     func show() {
         model.refreshOpenAtLogin()
-        // An accessory app is not active by default. Without this, the window opens behind other apps.
+        // An accessory app is not the active app, and macOS can refuse or delay `activate()`.
+        // Then `makeKeyAndOrderFront` puts the window behind the windows of the active app.
+        // `orderFrontRegardless` does not wait for the activation: the window shows at once.
+        window.orderFrontRegardless()
+        bringToFront()
+        // "Settings…" comes from the menu of the menu bar icon, and that menu is still closing
+        // now. macOS can ignore an activation in that moment. Thus the app asks again one turn later.
+        DispatchQueue.main.async { [weak self] in self?.bringToFront() }
+    }
+
+    /// Makes the app active and gives the window the keyboard, when macOS permits it.
+    private func bringToFront() {
+        guard window.isVisible else { return }
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
     }
