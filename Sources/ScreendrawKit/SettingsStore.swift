@@ -3,6 +3,7 @@ import AppKit
 /// The settings of the shell (D7), in `UserDefaults`: the two hotkeys, the one try of "open at
 /// login", and the first position of the menu bar icon. The tool, the size, the colour and the
 /// stay mode are in `DrawPrefs`, because the shell does not know the drawing part.
+/// The keys of the toolbar are in `ToolbarKeys`, the one store that the two parts share.
 ///
 /// The `UserDefaults` is a parameter, so a test gives one that keeps its values in memory.
 /// A value that is missing or broken gives the start value. The store never fails.
@@ -54,6 +55,12 @@ final class SettingsStore {
         case .clickThrough: return "clickThrough"
         }
     }
+
+    // MARK: The keys of the toolbar
+
+    /// The keys of the toolbar, on the same `UserDefaults`. The drawing part reads them from its
+    /// own `ToolbarKeys` on that `UserDefaults`, so a key that the settings window writes works at once.
+    var toolbarKeys: ToolbarKeys { ToolbarKeys(defaults: defaults) }
 
     // MARK: Open at login
 
