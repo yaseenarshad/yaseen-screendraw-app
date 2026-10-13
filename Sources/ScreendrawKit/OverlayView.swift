@@ -272,7 +272,7 @@ final class OverlayView: NSView, NSTextViewDelegate {
         }
     }
 
-    /// Command-Z and Shift-Command-Z. The app has no Edit menu, so the keys of the menu come here.
+    /// Command-Z, Shift-Command-Z and Command-comma. The app has no menu bar menus, so the keys of the menus come here.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         guard event.type == .keyDown, flags.contains(.command), !flags.contains(.control), !flags.contains(.option)
@@ -280,6 +280,13 @@ final class OverlayView: NSView, NSTextViewDelegate {
         // Some keyboard layouts give the Latin letter only in `characters`.
         let keys = [event.charactersIgnoringModifiers, event.characters].map { $0?.lowercased() }
         let isShift = flags.contains(.shift)
+
+        // Command-comma does the same as the gear of the toolbar (row 2.43). A text that is open
+        // is finished first (row 2.44).
+        if keys.contains(","), !isShift {
+            session.openSettings()
+            return true
+        }
 
         if let field = textView {
             // While a text is open, the keys are for the typing.

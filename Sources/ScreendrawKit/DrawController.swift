@@ -10,6 +10,10 @@ import AppKit
 final class DrawController: DrawControlling {
     var mode: DrawMode { session.mode }
     var onModeChange: (DrawMode) -> Void = { _ in }
+    var onOpenSettings: () -> Void {
+        get { session.onOpenSettings }
+        set { session.onOpenSettings = newValue }
+    }
 
     let session: DrawSession
     private let screens: () -> [OverlayScreen]
