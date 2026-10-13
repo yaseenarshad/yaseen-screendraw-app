@@ -6,9 +6,9 @@ import AppKit
 /// closes the windows for the mode, and it runs the timer while a Fade or Hold mark exists.
 /// While the mode is off, no window, no timer and no observer exists. The kept marks are data only.
 @MainActor
-public final class DrawController: DrawControlling {
-    public var mode: DrawMode { session.mode }
-    public var onModeChange: (DrawMode) -> Void = { _ in }
+final class DrawController: DrawControlling {
+    var mode: DrawMode { session.mode }
+    var onModeChange: (DrawMode) -> Void = { _ in }
 
     let session: DrawSession
     private let screens: () -> [OverlayScreen]
@@ -23,7 +23,7 @@ public final class DrawController: DrawControlling {
     /// Exists only while drawing is on.
     private(set) var screenObserver: NSObjectProtocol?
 
-    public convenience init(defaults: UserDefaults = .standard) {
+    convenience init(defaults: UserDefaults = .standard) {
         self.init(
             defaults: defaults,
             now: { ProcessInfo.processInfo.systemUptime },
@@ -47,7 +47,7 @@ public final class DrawController: DrawControlling {
 
     // MARK: What the shell calls
 
-    public func toggleDrawing() {
+    func toggleDrawing() {
         if session.mode == .off {
             shownScreens = screens()
             session.start(displays: shownScreens.map { $0.display })
@@ -56,11 +56,11 @@ public final class DrawController: DrawControlling {
         }
     }
 
-    public func toggleClickThrough() {
+    func toggleClickThrough() {
         session.toggleClickThrough()
     }
 
-    public func clearAll() {
+    func clearAll() {
         session.clearAll()
     }
 
