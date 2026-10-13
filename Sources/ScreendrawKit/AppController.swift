@@ -7,12 +7,16 @@ import AppKit
 public final class AppController: NSObject, NSApplicationDelegate {
     private let draw: DrawControlling = DrawController()
 
-    public static func main() {
-        let app = NSApplication.shared
-        let controller = AppController()
-        app.delegate = controller
-        // A menu bar app: no Dock icon and no main menu.
-        app.setActivationPolicy(.accessory)
-        app.run()
+    /// Starts the app. It does not return.
+    public nonisolated static func main() {
+        // `main.swift` runs on the main thread, but the compiler does not know that in Swift 5 mode.
+        MainActor.assumeIsolated {
+            let app = NSApplication.shared
+            let controller = AppController()
+            app.delegate = controller
+            // The same as `LSUIElement`: no Dock icon, also when the binary runs outside the bundle.
+            app.setActivationPolicy(.accessory)
+            app.run()
+        }
     }
 }
