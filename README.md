@@ -32,9 +32,37 @@ The menu bar icon is a pencil in a circle. The circle is filled while the mode i
 | Shift-Command-Z | Redo. |
 
 - Control-Option-D and Control-Option-C work from each app. You can change the two (see "Settings").
+- Esc, Delete, Command-Z and Shift-Command-Z are fixed keys. They are not in Settings.
 - Esc, Delete, Command-Z and Shift-Command-Z work only in mode drawing. In click-through, each key goes to the app below.
 - While a text is open, Delete, Command-Z and Shift-Command-Z are for the typing.
 - Undo goes back 200 steps.
+
+### The toolbar keys
+
+Each tool, size, colour and value of the switch has a key. The key does the same as a click on the button. These are the keys at the start:
+
+| Button | Key |  | Button | Key |
+| -- | -- | -- | -- | -- |
+| Pen | W |  | Red | 4 |
+| Highlight | H |  | Amber | 5 |
+| Arrow | A |  | Green | 6 |
+| Rectangle | R |  | Blue | 7 |
+| Ellipse | O |  | Black | 8 |
+| Text | T |  | White | 9 |
+| Thin | 1 |  | Fade | F |
+| Medium | 2 |  | Hold | G |
+| Thick | 3 |  | Sticky | S |
+
+- P also selects the Pen, while no button has the key P.
+- Each button of the toolbar shows its key in its bottom right corner. Undo shows ⌘Z, Redo shows ⇧⌘Z, Clear all shows ⌫, and Close shows esc.
+- You can change each of the 18 keys (see "Settings").
+- The toolbar keys work only in mode drawing. They are not global hotkeys. In click-through and while drawing is off, each key goes to the app that has the keyboard.
+- While a text is open, each key is for the typing.
+- A key with Command, Control or Option is not a toolbar key.
+- Shift and Caps Lock do not stop a key: the case of a letter does not count.
+- The app compares the character that the key types, not the position of the key. Thus the keys follow your keyboard layout. Shift with a digit types a different character, so it is not the key of the digit.
+- A key during a drag does nothing. The mark in progress keeps its tool, its size and its colour.
+- A key that stays down makes one change only.
 
 ## The toolbar
 
@@ -49,6 +77,8 @@ Row 2:
 - Three sizes: Thin, Medium, Thick.
 - Six colours: red, amber, green, blue, black, white.
 - The switch Fade, Hold, Sticky.
+
+Each button shows its key in its bottom right corner (see "The toolbar keys").
 
 How the tools work:
 
@@ -97,6 +127,13 @@ Click the menu bar icon. In mode drawing the overlay is above the menu bar, so c
   - The two hotkeys must be different.
   - If the app or macOS refuses a key, a red line tells why and the old hotkey stays.
 - **Open at login.** The switch shows the real state from macOS. The first start of the installed app turns it on one time. You can turn it off here or in System Settings, Login Items.
+- **Toolbar keys.** The 18 keys of the toolbar are in four groups: Tools, Sizes, Colours, Stay. Click the key of a button and type the new key. Esc or a second click stops with no change.
+  - A key is one letter, digit or punctuation mark, with no Command, Control or Option. Space, Return, Tab, Esc, Delete and the arrow keys are not possible.
+  - Each key belongs to one button only. If a different button has the key, a red line names that button and the old key stays. Give that button a different key first.
+  - A new key works at once. The toolbar shows it, and the app remembers it.
+  - "Reset to the start keys" gives each of the 18 keys its start value. The two hotkeys do not change.
+  - If the stored keys are not valid, the app uses the start keys.
+  - While a recorder of a hotkey or of a toolbar key listens, the two hotkeys are paused.
 
 ## Install from a release
 
