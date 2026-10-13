@@ -58,6 +58,8 @@ final class StatusMenu: NSObject {
         drawRow.title = (mode == .off) ? "Start drawing" : "Stop drawing"
         // The click-through hotkey does nothing when the mode is off. The row tells the same (row 4.15).
         clickThroughRow.isEnabled = (mode != .off)
+        // The row turns a mode on and off, so it shows that mode with a check mark.
+        clickThroughRow.state = (mode == .clickThrough) ? .on : .off
         // The menu bar is below the overlay in mode drawing. A settings window would be below it too (row 5.11).
         settingsRow.isEnabled = (mode != .drawing)
         symbolName = StatusMenu.symbolName(for: mode)
