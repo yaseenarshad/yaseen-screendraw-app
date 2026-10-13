@@ -391,6 +391,20 @@ import Testing
         #expect(controller.overlays.map { $0.overlayView.markLayers.count } == [2, 1])
     }
 
+    @Test func row1_11_aChangeOfTheDockOrTheMenuBarKeepsTheOverlays() {
+        let stage = Stage()
+        let controller = stage.controller
+        controller.toggleDrawing()
+        let overlays = controller.overlays
+
+        // The Dock hides: the visible part of the screen grows, and the screen itself is the same.
+        let left = Screens.leftScreen
+        stage.desk.screens[0] = OverlayScreen(display: left.display, frame: left.frame, visibleFrame: left.frame, scale: left.scale)
+        controller.screensChanged()
+        #expect(controller.overlays.count == overlays.count)
+        #expect(zip(controller.overlays, overlays).allSatisfy { $0 === $1 })
+    }
+
     @Test func row4_14_withTheModeOffNoWindowNoTimerAndNoObserverExists() {
         let stage = Stage()
         let controller = stage.controller

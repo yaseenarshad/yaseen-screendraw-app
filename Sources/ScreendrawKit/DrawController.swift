@@ -169,7 +169,12 @@ final class DrawController: DrawControlling {
     /// the new set of screens.
     func screensChanged() {
         let newScreens = screens()
-        guard shownMode != .off, newScreens != shownScreens else { return }
+        // A change of the Dock or the menu bar changes only `visibleFrame`. The overlays cover the
+        // full screen. Thus they stay, and a drag in progress continues.
+        let needsNewOverlays = newScreens.count != shownScreens.count || zip(newScreens, shownScreens).contains {
+            $0.display != $1.display || $0.frame != $1.frame || $0.scale != $1.scale
+        }
+        guard shownMode != .off, needsNewOverlays else { return }
         shownScreens = newScreens
         session.setDisplays(newScreens.map { $0.display })
         // The toolbar stays where the user put it, unless its screen is gone.
