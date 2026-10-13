@@ -44,10 +44,15 @@ final class OverlayWindow: NSPanel {
             contentRect: screen.frame,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
-            defer: true
+            defer: false
         )
 
         collectionBehavior = OverlayWindow.allSpaces
+        // macOS sends a click on a clear pixel of a transparent window to the window below, until
+        // the app sets this value. The overlay must get each click, also where no mark is.
+        // The two steps make sure that the value goes to macOS.
+        ignoresMouseEvents = true
+        ignoresMouseEvents = false
         // A panel takes the keyboard only for a text field, and hides when its app is not active.
         // The overlay needs the keyboard at once, and it must stay.
         becomesKeyOnlyIfNeeded = false
