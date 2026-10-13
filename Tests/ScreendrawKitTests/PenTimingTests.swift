@@ -22,9 +22,8 @@ import Testing
 
         var best = (total: TimeInterval.infinity, slowest: TimeInterval.infinity)
         for _ in 0..<3 {
-            let store = TestDefaults()
             let controller = DrawController(
-                defaults: store.defaults,
+                defaults: MemoryDefaults(),
                 now: { ProcessInfo.processInfo.systemUptime },
                 screens: { [screen] },
                 pointer: { .zero }

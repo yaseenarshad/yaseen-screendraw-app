@@ -13,7 +13,7 @@ import Testing
     private let draw = FakeDrawControl()
     private let hotKeys = FakeHotKeyRegistrar()
     private let loginItem = FakeLoginItem()
-    private let defaults = ShellMemoryDefaults()
+    private let defaults = MemoryDefaults()
 
     /// The hotkeys and the drawing part hold the app weakly, as `NSApplication` holds its delegate.
     /// This keeps each app of a test until the test ends.

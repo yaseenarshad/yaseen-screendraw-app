@@ -175,10 +175,10 @@ import Testing
 
     @Test func row2_3_aBrokenSavedValueGivesTheValueOfTheFirstStart() {
         let fixture = Fixture()
-        fixture.store.defaults.set("crayon", forKey: "drawTool")
-        fixture.store.defaults.set(7, forKey: "drawSize")
-        fixture.store.defaults.set("", forKey: "drawColor")
-        fixture.store.defaults.set("forever", forKey: "drawStayMode")
+        fixture.store.set("crayon", forKey: "drawTool")
+        fixture.store.set(7, forKey: "drawSize")
+        fixture.store.set("", forKey: "drawColor")
+        fixture.store.set("forever", forKey: "drawStayMode")
         let next = fixture.nextStart()
         #expect(next.tool == .pen && next.style == MarkStyle(color: .red, size: .thick) && next.stay == .sticky)
     }

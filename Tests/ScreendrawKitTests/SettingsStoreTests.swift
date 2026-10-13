@@ -9,14 +9,14 @@ import Testing
     private let positionKey = "NSStatusItem Preferred Position YaseenScreendraw"
 
     @Test func theStartValues() {
-        let store = SettingsStore(defaults: ShellMemoryDefaults())
+        let store = SettingsStore(defaults: MemoryDefaults())
         #expect(store.hotKey(.draw) == controlOptionD)
         #expect(store.hotKey(.clickThrough) == controlOptionC)
         #expect(store.loginItemWasTried == false)
     }
 
     @Test func aWrittenValueComesBackFromANewStoreOnTheSameDefaults() {
-        let defaults = ShellMemoryDefaults()
+        let defaults = MemoryDefaults()
         let commandF6 = HotKeyCombo(keyCode: UInt32(kVK_F6), modifiers: .command)
         let f5 = HotKeyCombo(keyCode: UInt32(kVK_F5), modifiers: [])
 
@@ -37,7 +37,7 @@ import Testing
     }
 
     @Test func row5_7_aStoredValueThatIsNotValidGivesTheStartValue() {
-        let defaults = ShellMemoryDefaults()
+        let defaults = MemoryDefaults()
         let store = SettingsStore(defaults: defaults)
         let command = Int(NSEvent.ModifierFlags.command.rawValue)
 
@@ -70,7 +70,7 @@ import Testing
 
     /// Rows 5.4 and 5.7: the same key for the two hotkeys is not a valid stored pair.
     @Test func row5_7_theSameStoredKeyForTheTwoHotKeysGivesTheStartValues() {
-        let store = SettingsStore(defaults: ShellMemoryDefaults())
+        let store = SettingsStore(defaults: MemoryDefaults())
         let commandF6 = HotKeyCombo(keyCode: UInt32(kVK_F6), modifiers: .command)
         store.setHotKey(commandF6, for: .draw)
         store.setHotKey(commandF6, for: .clickThrough)
@@ -78,14 +78,14 @@ import Testing
         #expect(store.hotKey(.clickThrough) == controlOptionC)
 
         // The draw hotkey has the start value of the other one, and the other one has no stored value.
-        let second = SettingsStore(defaults: ShellMemoryDefaults())
+        let second = SettingsStore(defaults: MemoryDefaults())
         second.setHotKey(controlOptionC, for: .draw)
         #expect(second.hotKey(.draw) == controlOptionD)
         #expect(second.hotKey(.clickThrough) == controlOptionC)
     }
 
     @Test func row5_10_theFirstStartSetsAPositionForTheMenuBarIcon() {
-        let defaults = ShellMemoryDefaults()
+        let defaults = MemoryDefaults()
         #expect(SettingsStore.statusItemPositionKey(autosaveName: "YaseenScreendraw") == positionKey)
         #expect(defaults.object(forKey: positionKey) == nil)
 
@@ -98,7 +98,7 @@ import Testing
     @Test func row5_10_aPositionThatExistsDoesNotChange() {
         // The user moved the icon: macOS wrote a number. A value of a different type also stays.
         for existing in [404.0, 0.0, 460.5, "left", 12] as [Any] {
-            let defaults = ShellMemoryDefaults()
+            let defaults = MemoryDefaults()
             defaults.set(existing, forKey: positionKey)
             let store = SettingsStore(defaults: defaults)
             store.setFirstStatusItemPosition(autosaveName: "YaseenScreendraw")

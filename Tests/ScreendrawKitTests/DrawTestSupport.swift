@@ -1,5 +1,6 @@
 import AppKit
 @testable import ScreendrawKit
+import Testing
 
 // Shared helpers. Everything here stays out of sight: no window on a screen, no real screen,
 // no mouse, no key, and no file on the disk.
@@ -9,32 +10,26 @@ final class TestClock {
     var time: TimeInterval = 1000
 }
 
-/// A `UserDefaults` that keeps its values in memory only, for one test.
+/// A `UserDefaults` that keeps its values in memory only, for one test. All the tests use it.
 ///
 /// A real suite (`UserDefaults(suiteName:)`) is not possible here: macOS writes a file for it in
-/// `~/Library/Preferences`, and an empty file stays after `removePersistentDomain`.
+/// `~/Library/Preferences`, and writes an empty file again some seconds after `removePersistentDomain`.
 /// The tests must leave no file.
-final class TestDefaults {
-    final class Memory: UserDefaults {
-        fileprivate(set) var values: [String: Any] = [:]
+final class MemoryDefaults: UserDefaults {
+    /// Everything that the app saved.
+    private(set) var values: [String: Any] = [:]
 
-        init() {
-            // The name is never used: each call that the app makes is overridden below.
-            super.init(suiteName: nil)!
-        }
-
-        override func object(forKey defaultName: String) -> Any? { values[defaultName] }
-        override func set(_ value: Any?, forKey defaultName: String) { values[defaultName] = value }
-        override func set(_ value: Int, forKey defaultName: String) { values[defaultName] = value }
-        override func set(_ value: Bool, forKey defaultName: String) { values[defaultName] = value }
-        override func removeObject(forKey defaultName: String) { values[defaultName] = nil }
+    init() {
+        // The name is never used: each call that the app makes is overridden below.
+        super.init(suiteName: nil)!
     }
 
-    private let memory = Memory()
-
-    var defaults: UserDefaults { memory }
-    /// Everything that the app saved.
-    var saved: [String: Any] { memory.values }
+    override func object(forKey defaultName: String) -> Any? { values[defaultName] }
+    override func set(_ value: Any?, forKey defaultName: String) { values[defaultName] = value }
+    override func set(_ value: Int, forKey defaultName: String) { values[defaultName] = value }
+    override func set(_ value: Double, forKey defaultName: String) { values[defaultName] = value }
+    override func set(_ value: Bool, forKey defaultName: String) { values[defaultName] = value }
+    override func removeObject(forKey defaultName: String) { values[defaultName] = nil }
 }
 
 /// Two screens, the same mix as the two real monitors: the left has scale 2, the right has scale 1.
@@ -61,7 +56,7 @@ enum Screens {
 /// Drawing is on for the two screens, unless `isOn` is false.
 struct Fixture {
     let clock = TestClock()
-    let store = TestDefaults()
+    let store = MemoryDefaults()
     let session: DrawSession
 
     init(isOn: Bool = true) {
@@ -74,8 +69,24 @@ struct Fixture {
         Fixture.makeSession(clock: clock, store: store)
     }
 
-    private static func makeSession(clock: TestClock, store: TestDefaults) -> DrawSession {
-        DrawSession(prefs: DrawPrefs(defaults: store.defaults), now: { clock.time })
+    private static func makeSession(clock: TestClock, store: MemoryDefaults) -> DrawSession {
+        DrawSession(prefs: DrawPrefs(defaults: store), now: { clock.time })
+    }
+}
+
+extension Toolbar {
+    /// The button with the given name ("Pen", "Undo", "Thick", "Blue", "Sticky" and so on).
+    func button(named name: String) throws -> ToolbarButton {
+        try #require(subviews.compactMap { $0 as? ToolbarButton }.first { $0.name == name })
+    }
+
+    /// A click on a button: its action, as AppKit sends it. Nothing clicks.
+    func press(_ name: String) throws {
+        let button = try button(named: name)
+        #expect(button.isEnabled, "the button \(name) is not enabled")
+        // The action goes through the app object. It is an accessory app: no Dock icon, no window.
+        NSApplication.shared.setActivationPolicy(.accessory)
+        #expect(button.sendAction(button.action, to: button.target))
     }
 }
 
