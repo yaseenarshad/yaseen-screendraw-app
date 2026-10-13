@@ -158,8 +158,11 @@ import Testing
         #expect(stage.selected.contains("Hold") && !stage.selected.contains("Fade"))
     }
 
-    @Test func theButtonsNeverTakeTheKeyboard() throws {
+    /// The toolbar panel never has the keyboard, so each click on it is a first click (rows 2.16 and 4.2).
+    @Test func theToolbarAndItsButtonsTakeTheFirstClickAndNeverTheKeyboard() throws {
         let stage = Stage()
+        // The area between the buttons takes the click that starts a drag of the toolbar.
+        #expect(stage.toolbar.acceptsFirstMouse(for: nil))
         for button in stage.toolbar.subviews.compactMap({ $0 as? ToolbarButton }) {
             #expect(button.refusesFirstResponder)
             #expect(button.acceptsFirstMouse(for: nil))

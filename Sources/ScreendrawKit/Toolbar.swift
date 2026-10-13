@@ -188,6 +188,9 @@ final class Toolbar: NSView {
 
     // MARK: Events
 
+    // The toolbar never has the keyboard. Without this, AppKit can keep the click that starts a drag.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
     // A drag that starts between the buttons moves the toolbar. It makes no mark, because the
     // toolbar is its own window.
     override func mouseDown(with event: NSEvent) {
