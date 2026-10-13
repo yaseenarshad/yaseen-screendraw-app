@@ -439,13 +439,46 @@ import Testing
         #expect(stage.session.markCount == 2)
     }
 
-    @Test func thePublicInitMakesAControllerThatIsOffAndShowsNothing() {
+    @Test func thePublicInitMakesAControllerThatIsOff() {
         let store = TestDefaults()
         let draw: DrawControlling = DrawController(defaults: store.defaults)
         #expect(draw.mode == .off)
         draw.toggleClickThrough()
         draw.clearAll()
         #expect(draw.mode == .off)
+    }
+
+    /// The controller of the app, with the real screens. A test process has no run loop of the
+    /// app, so the controller puts no window on a screen. This protects the tests of the shell.
+    @Test func theRealControllerPutsNoWindowOnAScreenOutsideTheRunLoopOfTheApp() {
+        #expect(!NSApplication.shared.isRunning)
+        let store = TestDefaults()
+        let controller = DrawController(defaults: store.defaults)
+        var modes: [DrawMode] = []
+        controller.onModeChange = { modes.append($0) }
+
+        controller.toggleDrawing()
+        #expect(controller.mode == .drawing)
+        // One overlay for each real screen is made, and none is shown.
+        #expect(controller.overlays.count == NSScreen.screens.count)
+        #expect(controller.overlays.allSatisfy { !$0.isVisible && !$0.isKeyWindow })
+        #expect(controller.toolbarPanel?.isVisible == false)
+        controller.toggleClickThrough()
+        controller.toggleClickThrough()
+        #expect(controller.overlays.allSatisfy { !$0.isVisible })
+
+        controller.toggleDrawing()
+        #expect(controller.overlays.isEmpty && controller.toolbarPanel == nil)
+        #expect(modes == [.drawing, .clickThrough, .drawing, .off])
+    }
+
+    @Test func theScreensOfTheMacBecomeOverlayScreens() {
+        let screens = OverlayScreen.current
+        #expect(screens.map { $0.frame } == NSScreen.screens.map { $0.frame })
+        #expect(screens.map { $0.display.size } == NSScreen.screens.map { $0.frame.size })
+        #expect(screens.map { $0.scale } == NSScreen.screens.map { $0.backingScaleFactor })
+        // Each screen has its own id.
+        #expect(Set(screens.map { $0.display.id }).count == screens.count)
     }
 
     /// The full flow with no window on a screen: draw on, a mark, Undo, click-through, draw off
