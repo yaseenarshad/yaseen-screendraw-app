@@ -27,8 +27,7 @@ import Testing
                 defaults: store.defaults,
                 now: { ProcessInfo.processInfo.systemUptime },
                 screens: { [screen] },
-                pointer: { .zero },
-                showsWindows: false
+                pointer: { .zero }
             )
             controller.toggleDrawing()
             let session = controller.session

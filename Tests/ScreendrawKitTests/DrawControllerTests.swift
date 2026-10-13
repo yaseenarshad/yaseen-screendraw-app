@@ -2,8 +2,9 @@ import AppKit
 @testable import ScreendrawKit
 import Testing
 
-/// The controller and its windows, out of sight. The controller gets fixed screens, a fixed
-/// pointer and `showsWindows: false`: the windows are made, but no call puts one on a screen.
+/// The controller and its windows, out of sight. The controller gets fixed screens and a fixed
+/// pointer. A test process has no run loop of the app: the windows are made, but no call puts
+/// one on a screen.
 /// These tests have the window side of the rows, and the full flow through `DrawControlling`.
 @MainActor @Suite struct DrawControllerTests {
     /// The screens and the pointer that the controller sees. A test changes them.
@@ -25,8 +26,7 @@ import Testing
                 defaults: store.defaults,
                 now: { [clock] in clock.time },
                 screens: { [desk] in desk.screens },
-                pointer: { [desk] in desk.pointer },
-                showsWindows: false
+                pointer: { [desk] in desk.pointer }
             )
             controller.onModeChange = { [unowned self] in self.modes.append($0) }
         }
