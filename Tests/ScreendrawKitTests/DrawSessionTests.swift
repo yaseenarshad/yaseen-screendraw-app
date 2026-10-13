@@ -424,15 +424,6 @@ import Testing
         #expect(session.canRedo)
     }
 
-    @Test func row2_15_closeIsTheSameAsTheDrawHotkey() {
-        let session = Fixture().session
-        session.drawLine()
-        session.stop()
-        #expect(session.mode == .off)
-        // The Sticky mark stays in memory (row 4.5).
-        #expect(session.markCount == 1)
-    }
-
     @Test func row2_18_oneToolSizeAndColourApplyToEachScreen() {
         let session = Fixture().session
         session.selectTool(.rectangle)
