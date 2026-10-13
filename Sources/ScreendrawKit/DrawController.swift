@@ -13,7 +13,6 @@ public final class DrawController: DrawControlling {
     let session: DrawSession
     private let screens: () -> [OverlayScreen]
     private let pointer: () -> CGPoint
-    private let showsWindows: Bool
     private var shownMode = DrawMode.off
     private var shownScreens: [OverlayScreen] = []
     /// One for each screen while drawing is on. Empty while the mode is off.
@@ -29,24 +28,20 @@ public final class DrawController: DrawControlling {
             defaults: defaults,
             now: { ProcessInfo.processInfo.systemUptime },
             screens: { OverlayScreen.current },
-            pointer: { NSEvent.mouseLocation },
-            showsWindows: true
+            pointer: { NSEvent.mouseLocation }
         )
     }
 
-    /// A test gives a clock that it sets, fixed screens and a fixed pointer, and `showsWindows: false`.
-    /// Then the windows are made, but none is put on the screen.
+    /// A test gives a clock that it sets, fixed screens and a fixed pointer.
     init(
         defaults: UserDefaults,
         now: @escaping () -> TimeInterval,
         screens: @escaping () -> [OverlayScreen],
-        pointer: @escaping () -> CGPoint,
-        showsWindows: Bool
+        pointer: @escaping () -> CGPoint
     ) {
         session = DrawSession(prefs: DrawPrefs(defaults: defaults), now: now)
         self.screens = screens
         self.pointer = pointer
-        self.showsWindows = showsWindows
         session.onChange = { [weak self] in self?.sessionChanged() }
     }
 
@@ -91,10 +86,10 @@ public final class DrawController: DrawControlling {
 
     // MARK: The windows
 
-    /// No window goes on the screen outside the run loop of the app. A test has no run loop, so
-    /// a test can never put a window on the screen.
+    /// No window goes on the screen outside the run loop of the app. A test has no run loop of
+    /// the app, so the windows of a test are made, but none is put on the screen.
     private var canShow: Bool {
-        showsWindows && NSApplication.shared.isRunning
+        NSApplication.shared.isRunning
     }
 
     /// The screen that has the pointer.
