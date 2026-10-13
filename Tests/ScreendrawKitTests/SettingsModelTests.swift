@@ -87,12 +87,18 @@ import Testing
                 #expect(model.hotKey(kind) == kind.startValue)
                 #expect(hotKeys.registered == [.draw: controlOptionD, .clickThrough: controlOptionC])
             }
-            // The red line is only below the row that recorded. It goes away when that row records again.
+            // The red line is only below the row that recorded.
             #expect(model.hotKeyProblem(kind.other) == nil)
-            model.startRecording(kind)
-            #expect(model.hotKeyProblem(kind) == nil)
-            model.cancelRecording()
-            #expect(model.hotKeyProblem(kind) == nil)
+            // It stays while the recorder of the other row is not used, and "Change…" of each row removes it.
+            for next in [kind, kind.other] {
+                model.startRecording(kind)
+                _ = model.keyDown(refusedKeys[0])
+                #expect(model.hotKeyProblem(kind) != nil)
+                model.startRecording(next)
+                #expect(model.hotKeyProblem(kind) == nil)
+                model.cancelRecording()
+                #expect(model.hotKeyProblem(kind) == nil)
+            }
         }
         #expect(told == 0)
         #expect(defaults.object(forKey: "drawHotKeyCode") == nil)
@@ -153,6 +159,12 @@ import Testing
         #expect(model.hotKeyProblem(.clickThrough) == nil)
         #expect(model.hotKey(.draw) == controlOptionD)
         #expect(hotKeys.registered == [.clickThrough: controlOptionC])
+
+        // The line tells the state of the hotkey. It is there again after the recorder of the other row.
+        model.startRecording(.clickThrough)
+        #expect(model.hotKeyProblem(.draw) == nil)
+        model.cancelRecording()
+        #expect(model.hotKeyProblem(.draw) == SettingsModel.refusedText)
 
         // A different key still works then, and the red line goes away.
         model.startRecording(.draw)

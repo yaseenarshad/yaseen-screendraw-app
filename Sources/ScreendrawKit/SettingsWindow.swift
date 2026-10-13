@@ -36,8 +36,8 @@ struct SettingsView: View {
     /// The window controller gives the keys to the model while the row records.
     private func hotKeyRow(_ title: String, _ kind: HotKeyKind) -> some View {
         let isRecording = (model.recording == kind)
-        return LabeledContent(title) {
-            VStack(alignment: .trailing, spacing: 4) {
+        return VStack(alignment: .leading, spacing: 4) {
+            LabeledContent(title) {
                 HStack {
                     Text(isRecording ? "Type a hotkey" : model.hotKey(kind).text)
                         .foregroundStyle(isRecording ? .secondary : .primary)
@@ -49,9 +49,9 @@ struct SettingsView: View {
                         }
                     }
                 }
-                if let problem = model.hotKeyProblem(kind) {
-                    Text(problem).font(.callout).foregroundStyle(.red)
-                }
+            }
+            if let problem = model.hotKeyProblem(kind) {
+                Text(problem).font(.callout).foregroundStyle(.red)
             }
         }
     }
