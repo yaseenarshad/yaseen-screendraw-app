@@ -103,8 +103,8 @@ public final class DrawController: DrawControlling {
         return shownScreens.first { $0.frame.contains(point) } ?? shownScreens.first
     }
 
+    /// The toolbar and the observer of the screens. `showMode` makes the overlays.
     private func openWindows() {
-        overlays = shownScreens.map { OverlayWindow(screen: $0, session: session) }
         let panel = ToolbarPanel(session: session)
         moveToBottomCentre(panel)
         toolbarPanel = panel
@@ -122,26 +122,32 @@ public final class DrawController: DrawControlling {
     }
 
     /// Drawing or click-through: who gets the mouse and the keyboard.
+    ///
+    /// Each mode gets new overlay windows. A window that starts to ignore the mouse and leaves
+    /// the screen in the same moment can keep the mouse. Then the clicks do not go to the apps.
+    /// A window that ignores the mouse from its start does not have this problem (YAZ-2792).
     private func showMode() {
         let isClickThrough = shownMode == .clickThrough
         // The dim toolbar tells that the pen is paused. It still takes clicks.
         toolbarPanel?.alphaValue = isClickThrough ? 0.5 : 1
-        overlays.forEach { $0.ignoresMouseEvents = isClickThrough }
-        guard canShow else { return }
+        let old = overlays
+        overlays = shownScreens.map { OverlayWindow(screen: $0, session: session, clickThrough: isClickThrough) }
+        overlays.forEach { $0.overlayView.refresh() }
 
-        for overlay in overlays {
-            // A window gives the keyboard back to the app below only when it leaves the screen.
-            // It comes back at once, and then it cannot take the keyboard.
-            if isClickThrough, overlay.isKeyWindow { overlay.orderOut(nil) }
-            overlay.orderFrontRegardless()
+        if canShow {
+            overlays.forEach { $0.orderFrontRegardless() }
+            toolbarPanel?.orderFrontRegardless()
+            if !isClickThrough {
+                // The overlay below the pointer takes the keyboard. The app below stays the active app.
+                let point = pointer()
+                (overlays.first { $0.frame.contains(point) } ?? overlays.first)?.makeKey()
+                NSCursor.crosshair.set()
+            }
         }
-        toolbarPanel?.orderFrontRegardless()
-        if !isClickThrough {
-            // The overlay below the pointer takes the keyboard. The app below stays the active app.
-            let point = pointer()
-            (overlays.first { $0.frame.contains(point) } ?? overlays.first)?.makeKey()
-            NSCursor.crosshair.set()
-        }
+        // The old windows close after the new ones are on the screen. Thus the marks do not blink.
+        // In click-through, the close of the window that has the keyboard gives the keyboard back
+        // to the app below.
+        close(old)
     }
 
     private func closeWindows() {
@@ -171,8 +177,6 @@ public final class DrawController: DrawControlling {
         guard shownMode != .off, newScreens != shownScreens else { return }
         shownScreens = newScreens
         session.setDisplays(newScreens.map { $0.display })
-        close(overlays)
-        overlays = newScreens.map { OverlayWindow(screen: $0, session: session) }
         // The toolbar stays where the user put it, unless its screen is gone.
         if let panel = toolbarPanel {
             let middle = CGPoint(x: panel.frame.midX, y: panel.frame.midY)

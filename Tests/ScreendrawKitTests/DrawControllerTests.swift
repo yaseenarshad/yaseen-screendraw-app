@@ -85,7 +85,7 @@ import Testing
         #expect(controller.screenObserver == nil)
     }
 
-    @Test func row1_8_and1_9_theOverlayIsATransparentPanelOneLevelBelowTheScreenSaver() throws {
+    @Test func row1_8_and1_9_theOverlayIsATransparentPanelBelowTheScreenSaverLevel() throws {
         let stage = Stage()
         stage.controller.toggleDrawing()
         for overlay in stage.controller.overlays {
@@ -97,8 +97,11 @@ import Testing
             #expect(!overlay.hidesOnDeactivate)
             #expect(overlay.level.rawValue > Int(CGWindowLevelForKey(.mainMenuWindow)))
             #expect(overlay.level.rawValue > Int(CGWindowLevelForKey(.dockWindow)))
-            // One below the freeze of Yaseen Screenshot, which is at `.screenSaver` (row 1.9).
-            #expect(overlay.level.rawValue == NSWindow.Level.screenSaver.rawValue - 1)
+            // Below the freeze of Yaseen Screenshot, which is at `.screenSaver` (row 1.9).
+            // The toolbar is between the two.
+            #expect(overlay.level.rawValue == NSWindow.Level.screenSaver.rawValue - 2)
+            let toolbarLevel = try #require(stage.controller.toolbarPanel?.level.rawValue)
+            #expect(toolbarLevel == NSWindow.Level.screenSaver.rawValue - 1)
             // A screenshot shows the marks: the overlay does not ask to be left out.
             #expect(overlay.sharingType != .none)
             #expect(!overlay.isReleasedWhenClosed)
@@ -316,8 +319,11 @@ import Testing
         controller.toggleClickThrough()
         #expect(controller.mode == .clickThrough)
         #expect(stage.modes == [.drawing, .clickThrough])
-        // The same windows stay, with their marks.
-        #expect(controller.overlays.elementsEqual(overlays) { $0 === $1 })
+        // Each mode gets new windows. A window that ignores the mouse from its start is the
+        // one way that always sends the clicks to the apps. The new windows show the marks.
+        #expect(controller.overlays.count == overlays.count)
+        #expect(zip(controller.overlays, overlays).allSatisfy { $0 !== $1 })
+        #expect(overlays.allSatisfy { !$0.isVisible })
         #expect(controller.overlays[0].overlayView.markLayers.count == 1)
         for overlay in controller.overlays {
             // Clicks, drags and scrolls go to the apps below, and the overlay cannot take the keyboard.

@@ -30,15 +30,17 @@ struct OverlayScreen: Equatable {
 /// below stays the active app. Then Esc, Undo and the typing of a text arrive here, and the
 /// screen below does not change.
 final class OverlayWindow: NSPanel {
-    /// One below `.screenSaver`: above a full-screen app, the menu bar and the Dock, and below
-    /// the freeze of Yaseen Screenshot. Thus a screenshot shows the marks.
-    static let overlayLevel = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue - 1)
+    /// Two below `.screenSaver`: above a full-screen app, the menu bar and the Dock, and below
+    /// the freeze of Yaseen Screenshot. Thus a screenshot shows the marks. The toolbar is between.
+    static let overlayLevel = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue - 2)
     /// On every Space, and above a full-screen app.
     static let allSpaces: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
 
     let overlayView: OverlayView
 
-    init(screen: OverlayScreen, session: DrawSession) {
+    /// - Parameter clickThrough: the window ignores the mouse from its start, and it never takes
+    ///   the keyboard. The controller makes a new window for each mode.
+    init(screen: OverlayScreen, session: DrawSession, clickThrough: Bool) {
         overlayView = OverlayView(display: screen.display, scale: screen.scale, session: session)
         super.init(
             contentRect: screen.frame,
@@ -52,7 +54,7 @@ final class OverlayWindow: NSPanel {
         // the app sets this value. The overlay must get each click, also where no mark is.
         // The two steps make sure that the value goes to macOS.
         ignoresMouseEvents = true
-        ignoresMouseEvents = false
+        if !clickThrough { ignoresMouseEvents = false }
         // A panel takes the keyboard only for a text field, and hides when its app is not active.
         // The overlay needs the keyboard at once, and it must stay.
         becomesKeyOnlyIfNeeded = false
