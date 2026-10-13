@@ -3,8 +3,9 @@ import Foundation
 /// The four small values that the drawing part remembers: the tool, the size, the colour and
 /// the stay mode. Nothing else of the drawing part goes to the disk. No mark is saved.
 ///
-/// The `UserDefaults` is a parameter, so a test uses its own suite and removes it after.
+/// The `UserDefaults` is a parameter, so a test gives one that keeps its values in memory.
 /// A value that is missing or broken gives the value of the first start. The store never fails.
+/// The settings of the shell (the hotkeys) are in `SettingsStore`. The two share no key.
 struct DrawPrefs {
     private enum Key {
         static let tool = "drawTool"
