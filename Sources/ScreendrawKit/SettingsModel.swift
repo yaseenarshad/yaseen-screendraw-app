@@ -64,7 +64,8 @@ final class SettingsModel: ObservableObject {
         // With the hotkeys still registered, macOS would change the mode and the row would not get the key.
         // Thus the user can also record a key that is a hotkey now (row 5.6).
         for each in HotKeyKind.allCases { hotKeys.unregister(each) }
-        hotKeyProblems[kind] = nil
+        // A new try starts with no old message.
+        hotKeyProblems = [:]
         recording = kind
     }
 
