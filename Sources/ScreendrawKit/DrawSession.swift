@@ -76,6 +76,10 @@ final class DrawSession {
     /// Called after something that the views show changed.
     var onChange: (() -> Void)?
 
+    /// The keys of the toolbar, on the `UserDefaults` of the other settings. The session keeps no
+    /// copy: it reads them when a key arrives, so a change in the settings window works at once.
+    let toolbarKeys: ToolbarKeys
+
     /// One step of the history.
     private enum Step {
         case add(PlacedMark)
@@ -99,6 +103,7 @@ final class DrawSession {
     init(prefs: DrawPrefs, now: @escaping () -> TimeInterval) {
         self.prefs = prefs
         self.now = now
+        toolbarKeys = ToolbarKeys(defaults: prefs.defaults)
         tool = prefs.tool
         style = MarkStyle(color: prefs.color, size: prefs.size)
         stay = prefs.stay
@@ -274,6 +279,20 @@ final class DrawSession {
         stay = newStay
         prefs.stay = newStay
         onChange?()
+    }
+
+    /// A key that the overlay got (D11). A toolbar key does the same as a click on its button.
+    ///
+    /// A key during a drag does nothing: the mark in progress keeps its tool and its style (row 2.37).
+    /// While a text is open, the text field has the keyboard and each key is for the typing (row 2.33).
+    func toolbarKey(_ key: String) {
+        guard mode == .drawing, drag == nil, textEdit == nil, let action = toolbarKeys.action(for: key) else { return }
+        switch action {
+        case .tool(let tool): selectTool(tool)
+        case .size(let size): setSize(size)
+        case .color(let color): setColor(color)
+        case .stay(let stay): setStay(stay)
+        }
     }
 
     /// Takes back the newest step. A text that is open is finished first, and then it is the newest mark.
