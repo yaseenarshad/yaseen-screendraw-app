@@ -1,8 +1,10 @@
 import AppKit
 
-/// The settings of the app (D7), in `UserDefaults`.
+/// The settings of the shell (D7), in `UserDefaults`: the two hotkeys, the one try of "open at
+/// login", and the first position of the menu bar icon. The tool, the size, the colour and the
+/// stay mode are in `DrawPrefs`, because the shell does not know the drawing part.
 ///
-/// The `UserDefaults` is a parameter, so a test uses its own one.
+/// The `UserDefaults` is a parameter, so a test gives one that keeps its values in memory.
 /// A value that is missing or broken gives the start value. The store never fails.
 final class SettingsStore {
     /// The start position of the menu bar icon: the distance from the right edge of the screen in points.
