@@ -385,7 +385,8 @@ import Testing
         }
         let plain = size()
         #expect(plain.width == 460)
-        #expect(plain.height > 100 && plain.height < 400)
+        // With the part "Toolbar keys", the form is not higher than about 640 points (row 5.27).
+        #expect(plain.height > 100 && plain.height <= 640)
 
         model.startRecording(.draw)
         _ = model.keyDown(controlOptionC)
