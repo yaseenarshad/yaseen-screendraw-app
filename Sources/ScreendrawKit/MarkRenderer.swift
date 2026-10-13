@@ -34,10 +34,11 @@ enum MarkRenderer {
     }
 
     /// Shows a mark in a shape layer. Each tool but Text is one path: a line or a filled shape.
-    static func show(_ mark: Mark, in layer: CAShapeLayer) {
+    /// A drag gives its own `line`, so each new point of a Pen line adds only one curve.
+    static func show(_ mark: Mark, in layer: CAShapeLayer, line: SmoothLine = SmoothLine()) {
         let isHighlight = mark.tool == .highlight
         let color = MarkRenderer.color(mark.style.color, alpha: isHighlight ? highlightAlpha : 1)
-        layer.path = path(for: mark)
+        layer.path = path(for: mark, line: line)
         layer.lineWidth = mark.style.lineWidth(for: mark.tool)
         // The Arrow is a filled outline. Each other tool is a line with no fill.
         layer.strokeColor = mark.tool == .arrow ? nil : color
@@ -48,7 +49,7 @@ enum MarkRenderer {
 
     // MARK: Shapes
 
-    static func path(for mark: Mark) -> CGPath {
+    static func path(for mark: Mark, line: SmoothLine = SmoothLine()) -> CGPath {
         let path = CGMutablePath()
         guard let first = mark.points.first, let last = mark.points.last else { return path }
         switch mark.tool {
@@ -57,7 +58,7 @@ enum MarkRenderer {
             path.move(to: first)
             path.addLine(to: CGPoint(x: first.x + 0.01, y: first.y))
         case .pen, .highlight:
-            addSmoothLine(through: mark.points, to: path)
+            return line.path(through: mark.points)
         case .rectangle where mark.points.count > 1:
             path.addRect(rect(between: first, and: last))
         case .ellipse where mark.points.count > 1:
@@ -72,19 +73,6 @@ enum MarkRenderer {
 
     private static func rect(between a: CGPoint, and b: CGPoint) -> CGRect {
         CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(a.x - b.x), height: abs(a.y - b.y))
-    }
-
-    /// A smooth line through the points of the pointer: each point is the control point of a
-    /// curve between the middles of its two segments.
-    private static func addSmoothLine(through points: [CGPoint], to path: CGMutablePath) {
-        guard points.count > 1 else { return }
-        path.move(to: points[0])
-        for index in 1..<(points.count - 1) {
-            let next = points[index + 1]
-            let middle = CGPoint(x: (points[index].x + next.x) / 2, y: (points[index].y + next.y) / 2)
-            path.addQuadCurve(to: middle, control: points[index])
-        }
-        path.addLine(to: points[points.count - 1])
     }
 
     /// The outline of an arrow: a line with a round start, and a head at `end`. The head grows
@@ -161,6 +149,43 @@ enum MarkRenderer {
         // This layer turns its image back.
         layer.setAffineTransform(CGAffineTransform(scaleX: 1, y: -1))
         return layer
+    }
+}
+
+/// A smooth line through the points of the pointer: each point is the control point of a curve
+/// between the middles of its two segments.
+///
+/// A drag adds one point at a time. The line keeps the curves that it has, and a new point adds
+/// one curve. A finished mark uses a new line, which makes all its curves in one go.
+final class SmoothLine {
+    private var curves = CGMutablePath()
+    /// The number of points that `curves` has, and the first of them.
+    private var count = 0
+    private var first = CGPoint.zero
+
+    /// The path through the points. A line with fewer than two points is empty.
+    func path(through points: [CGPoint]) -> CGPath {
+        guard points.count > 1 else { return CGMutablePath() }
+        if points.count < count || points[0] != first {
+            // A different line: start again.
+            curves = CGMutablePath()
+            count = 0
+        }
+        if count == 0 {
+            first = points[0]
+            curves.move(to: first)
+        }
+        // The curve at a point needs the point after it, so the last point has no curve yet.
+        for index in max(count - 1, 1)..<(points.count - 1) {
+            let next = points[index + 1]
+            let middle = CGPoint(x: (points[index].x + next.x) / 2, y: (points[index].y + next.y) / 2)
+            curves.addQuadCurve(to: middle, control: points[index])
+        }
+        count = points.count
+        // The last part is a straight line to the pointer. The next point replaces it with a curve.
+        let path = curves.mutableCopy() ?? CGMutablePath()
+        path.addLine(to: points[points.count - 1])
+        return path
     }
 }
 
