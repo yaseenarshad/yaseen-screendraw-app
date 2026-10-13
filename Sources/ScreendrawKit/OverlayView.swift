@@ -19,6 +19,8 @@ final class OverlayView: NSView, NSTextViewDelegate {
     private let inkLayer = CALayer()
     /// The mark of the drag in progress.
     let draftLayer = CAShapeLayer()
+    /// The curves of the Pen or Highlight line in progress. A new point adds one curve to them.
+    private var draftLine = SmoothLine()
     /// The layer of each finished mark, by the id of the mark.
     private(set) var markLayers: [Int: CALayer] = [:]
     private var shownMarksRevision = -1
@@ -75,9 +77,10 @@ final class OverlayView: NSView, NSTextViewDelegate {
         if shownDraftRevision != session.draftRevision {
             shownDraftRevision = session.draftRevision
             if let draft = session.draft(on: display.id) {
-                MarkRenderer.show(draft, in: draftLayer)
+                MarkRenderer.show(draft, in: draftLayer, line: draftLine)
             } else if draftLayer.path != nil {
                 draftLayer.path = nil
+                draftLine = SmoothLine()
             }
         }
         refreshTextView()
