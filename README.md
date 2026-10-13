@@ -153,6 +153,7 @@ You need Xcode.
 
 - `swift build`: build the app for development.
 - `swift test`: run the unit tests.
+- `SCREENDRAW_PNG_DIR="$PWD/build" swift test`: also write pictures of the toolbar and of the settings form into `build/`. The tests draw them with no window.
 - `scripts/bundle.sh`: make `build/Yaseen Screendraw.app` from a release build and sign it.
 - `scripts/bundle.sh --dmg`: also make `build/Yaseen-Screendraw-<version>-arm64.dmg`.
 - `scripts/install.sh`: quit the app that runs, put the new app in `/Applications`, and open it. Run `scripts/bundle.sh` first.
