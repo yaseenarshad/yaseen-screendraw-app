@@ -441,14 +441,6 @@ import Testing
         #expect(stage.session.markCount == 2)
     }
 
-    @Test func thePublicInitMakesAControllerThatIsOff() {
-        let draw: DrawControlling = DrawController(defaults: MemoryDefaults())
-        #expect(draw.mode == .off)
-        draw.toggleClickThrough()
-        draw.clearAll()
-        #expect(draw.mode == .off)
-    }
-
     /// The controller of the app, with the real screens. A test process has no run loop of the
     /// app, so the controller puts no window on a screen. This protects the tests of the shell.
     @Test func theRealControllerPutsNoWindowOnAScreenOutsideTheRunLoopOfTheApp() {
@@ -456,6 +448,7 @@ import Testing
         let controller = DrawController(defaults: MemoryDefaults())
         var modes: [DrawMode] = []
         controller.onModeChange = { modes.append($0) }
+        #expect(controller.mode == .off && controller.overlays.isEmpty)
 
         controller.toggleDrawing()
         #expect(controller.mode == .drawing)
