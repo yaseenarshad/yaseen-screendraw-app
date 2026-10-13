@@ -25,11 +25,17 @@ final class MemoryDefaults: UserDefaults {
     }
 
     override func object(forKey defaultName: String) -> Any? { values[defaultName] }
-    override func set(_ value: Any?, forKey defaultName: String) { values[defaultName] = value }
-    override func set(_ value: Int, forKey defaultName: String) { values[defaultName] = value }
-    override func set(_ value: Double, forKey defaultName: String) { values[defaultName] = value }
-    override func set(_ value: Bool, forKey defaultName: String) { values[defaultName] = value }
-    override func removeObject(forKey defaultName: String) { values[defaultName] = nil }
+    override func set(_ value: Any?, forKey defaultName: String) { change(defaultName, value) }
+    override func set(_ value: Int, forKey defaultName: String) { change(defaultName, value) }
+    override func set(_ value: Double, forKey defaultName: String) { change(defaultName, value) }
+    override func set(_ value: Bool, forKey defaultName: String) { change(defaultName, value) }
+    override func removeObject(forKey defaultName: String) { change(defaultName, nil) }
+
+    /// The real `UserDefaults` posts this notification on the thread that writes, before the write returns.
+    private func change(_ key: String, _ value: Any?) {
+        values[key] = value
+        NotificationCenter.default.post(name: UserDefaults.didChangeNotification, object: self)
+    }
 }
 
 /// Two screens, the same mix as the two real monitors: the left has scale 2, the right has scale 1.
