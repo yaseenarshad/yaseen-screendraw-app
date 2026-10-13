@@ -8,7 +8,7 @@ import Testing
     /// One overlay view on a fake screen of 400 by 300 points, wired as `DrawController` wires it.
     @MainActor final class Stage {
         let clock = TestClock()
-        let store = TestDefaults()
+        let store = MemoryDefaults()
         let display = DrawDisplay(id: 7, size: CGSize(width: 400, height: 300))
         let scale: CGFloat
         let session: DrawSession
@@ -16,7 +16,7 @@ import Testing
 
         init(scale: CGFloat = 2) {
             self.scale = scale
-            session = DrawSession(prefs: DrawPrefs(defaults: store.defaults), now: { [clock] in clock.time })
+            session = DrawSession(prefs: DrawPrefs(defaults: store), now: { [clock] in clock.time })
             session.start(displays: [display])
             view = OverlayView(display: display, scale: scale, session: session)
             session.onChange = { [unowned self] in self.view.refresh() }

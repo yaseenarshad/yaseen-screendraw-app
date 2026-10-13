@@ -13,7 +13,7 @@ import Testing
 
     /// A model on its own settings, with the two hotkeys registered as at the start of the app.
     private func makeModel(
-        defaults: UserDefaults = ShellMemoryDefaults(),
+        defaults: UserDefaults = MemoryDefaults(),
         hotKeys: FakeHotKeyRegistrar = FakeHotKeyRegistrar(),
         loginItem: FakeLoginItem = FakeLoginItem()
     ) -> SettingsModel {
@@ -23,7 +23,7 @@ import Testing
     }
 
     @Test func row5_2_aNewKeyWorksAtOnceAndIsStored() {
-        let defaults = ShellMemoryDefaults()
+        let defaults = MemoryDefaults()
         let hotKeys = FakeHotKeyRegistrar()
         let model = makeModel(defaults: defaults, hotKeys: hotKeys)
         var pressed: [HotKeyKind] = []
@@ -66,7 +66,7 @@ import Testing
     }
 
     @Test func row5_3_aKeyWithNoModifierIsRefusedWithTheReason() {
-        let defaults = ShellMemoryDefaults()
+        let defaults = MemoryDefaults()
         let hotKeys = FakeHotKeyRegistrar()
         let model = makeModel(defaults: defaults, hotKeys: hotKeys)
         var told = 0
@@ -106,7 +106,7 @@ import Testing
     }
 
     @Test func row5_4_theSameKeyForTheTwoHotKeysIsRefused() {
-        let defaults = ShellMemoryDefaults()
+        let defaults = MemoryDefaults()
         let hotKeys = FakeHotKeyRegistrar()
         let model = makeModel(defaults: defaults, hotKeys: hotKeys)
         var told = 0
@@ -127,7 +127,7 @@ import Testing
     }
 
     @Test func row5_5_aKeyThatMacOSRefusesKeepsTheOldHotKey() {
-        let defaults = ShellMemoryDefaults()
+        let defaults = MemoryDefaults()
         let hotKeys = FakeHotKeyRegistrar()
         hotKeys.refused = [controlOptionS]
         let model = makeModel(defaults: defaults, hotKeys: hotKeys)
@@ -174,7 +174,7 @@ import Testing
     }
 
     @Test func row5_6_theRecorderPausesTheTwoHotKeysAndEscStopsIt() {
-        let defaults = ShellMemoryDefaults()
+        let defaults = MemoryDefaults()
         let hotKeys = FakeHotKeyRegistrar()
         let model = makeModel(defaults: defaults, hotKeys: hotKeys)
         var pressed: [HotKeyKind] = []
@@ -228,7 +228,7 @@ import Testing
 
     /// Row 5.7 in the model: the window and the hotkeys use the start values.
     @Test func row5_7_theModelUsesTheStartValuesForStoredValuesThatAreNotValid() {
-        let defaults = ShellMemoryDefaults()
+        let defaults = MemoryDefaults()
         defaults.set("d", forKey: "drawHotKeyCode")
         defaults.set(0, forKey: "drawHotKeyModifiers")
         defaults.set(kVK_ANSI_A, forKey: "clickThroughHotKeyCode")
@@ -241,7 +241,7 @@ import Testing
     }
 
     @Test func row5_8_theFirstStartTurnsOpenAtLoginOnOneTime() {
-        let defaults = ShellMemoryDefaults()
+        let defaults = MemoryDefaults()
         let loginItem = FakeLoginItem()
         let model = makeModel(defaults: defaults, loginItem: loginItem)
         #expect(model.openAtLogin == false)
@@ -290,7 +290,7 @@ import Testing
 
     /// Row 5.8 outside the `.app` bundle (`swift run`): macOS has nothing to register.
     @Test func row5_8_outsideTheBundleTheSwitchIsOffAndTheWindowTellsWhy() {
-        let defaults = ShellMemoryDefaults()
+        let defaults = MemoryDefaults()
         let loginItem = FakeLoginItem()
         loginItem.isAvailable = false
         loginItem.isEnabled = true
@@ -306,7 +306,7 @@ import Testing
     }
 
     @Test func row5_9_theSwitchShowsTheRealStateOfMacOS() {
-        let defaults = ShellMemoryDefaults()
+        let defaults = MemoryDefaults()
         let loginItem = FakeLoginItem()
         // The first start was done, but macOS tells off. The switch shows off.
         SettingsStore(defaults: defaults).loginItemWasTried = true

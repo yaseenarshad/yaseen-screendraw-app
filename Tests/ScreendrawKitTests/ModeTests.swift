@@ -282,7 +282,7 @@ import Testing
         session.stop()
 
         // The settings hold four small values, and no other key.
-        let saved = fixture.store.saved
+        let saved = fixture.store.values
         #expect(Set(saved.keys) == ["drawTool", "drawSize", "drawColor", "drawStayMode"])
         #expect(saved["drawTool"] as? String == "text")
         #expect(saved["drawSize"] as? String == "medium")

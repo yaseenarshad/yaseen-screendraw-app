@@ -100,11 +100,6 @@ final class Toolbar: NSView {
         if redoButton.isEnabled != session.canRedo { redoButton.isEnabled = session.canRedo }
     }
 
-    /// The button with the given name ("Pen", "Undo", "Thick", "Blue", "Sticky" and so on).
-    func button(named name: String) -> NSButton? {
-        subviews.compactMap { $0 as? ToolbarButton }.first { $0.name == name }
-    }
-
     /// Where the toolbar shows when drawing starts: the bottom centre of the screen.
     /// `visibleFrame` is the screen with no menu bar and no Dock, in the global points of AppKit.
     static func origin(for size: CGSize, on visibleFrame: CGRect) -> CGPoint {

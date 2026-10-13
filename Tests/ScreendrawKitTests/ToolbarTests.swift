@@ -17,15 +17,11 @@ import Testing
         var session: DrawSession { fixture.session }
 
         func button(_ name: String) throws -> ToolbarButton {
-            try #require(toolbar.button(named: name) as? ToolbarButton)
+            try toolbar.button(named: name)
         }
 
         func press(_ name: String) throws {
-            let button = try button(name)
-            #expect(button.isEnabled, "the button \(name) is not enabled")
-            // The action goes through the app object. It is an accessory app: no Dock icon, no window.
-            NSApplication.shared.setActivationPolicy(.accessory)
-            #expect(button.sendAction(button.action, to: button.target))
+            try toolbar.press(name)
         }
 
         /// The names of the buttons that show as selected.

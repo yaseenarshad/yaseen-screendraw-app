@@ -16,14 +16,14 @@ import Testing
 
     @MainActor final class Stage {
         let clock = TestClock()
-        let store = TestDefaults()
+        let store = MemoryDefaults()
         let desk = Desk()
         let controller: DrawController
         var modes: [DrawMode] = []
 
         init() {
             controller = DrawController(
-                defaults: store.defaults,
+                defaults: store,
                 now: { [clock] in clock.time },
                 screens: { [desk] in desk.screens },
                 pointer: { [desk] in desk.pointer }
@@ -33,13 +33,9 @@ import Testing
 
         var session: DrawSession { controller.session }
 
-        /// A click on a button of the toolbar: its action, as AppKit sends it.
+        /// A click on a button of the toolbar.
         func press(_ name: String) throws {
-            let button = try #require(controller.toolbarPanel?.toolbarView.button(named: name))
-            #expect(button.isEnabled, "the button \(name) is not enabled")
-            // The action goes through the app object. It is an accessory app: no Dock icon, no window.
-            NSApplication.shared.setActivationPolicy(.accessory)
-            #expect(button.sendAction(button.action, to: button.target))
+            try #require(controller.toolbarPanel).toolbarView.press(name)
         }
 
         /// No window of the controller is on a screen.
@@ -446,8 +442,7 @@ import Testing
     }
 
     @Test func thePublicInitMakesAControllerThatIsOff() {
-        let store = TestDefaults()
-        let draw: DrawControlling = DrawController(defaults: store.defaults)
+        let draw: DrawControlling = DrawController(defaults: MemoryDefaults())
         #expect(draw.mode == .off)
         draw.toggleClickThrough()
         draw.clearAll()
@@ -458,8 +453,7 @@ import Testing
     /// app, so the controller puts no window on a screen. This protects the tests of the shell.
     @Test func theRealControllerPutsNoWindowOnAScreenOutsideTheRunLoopOfTheApp() {
         #expect(!NSApplication.shared.isRunning)
-        let store = TestDefaults()
-        let controller = DrawController(defaults: store.defaults)
+        let controller = DrawController(defaults: MemoryDefaults())
         var modes: [DrawMode] = []
         controller.onModeChange = { modes.append($0) }
 
