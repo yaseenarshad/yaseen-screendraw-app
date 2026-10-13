@@ -5,6 +5,7 @@ import AppKit
 /// `DrawSession` holds all the state. This class is the thin layer for AppKit: it opens and
 /// closes the windows for the mode, and it runs the timer while a Fade or Hold mark exists.
 /// While the mode is off, no window, no timer and no observer exists. The kept marks are data only.
+/// The keys of the toolbar are not hotkeys: only an overlay window gets them (D11).
 @MainActor
 final class DrawController: DrawControlling {
     var mode: DrawMode { session.mode }
@@ -22,6 +23,9 @@ final class DrawController: DrawControlling {
     private(set) var timer: Timer?
     /// Exists only while drawing is on.
     private(set) var screenObserver: NSObjectProtocol?
+    /// Exists only while drawing is on: the settings window can change a toolbar key while the
+    /// toolbar shows, and the button must show the new key at once (row 5.23).
+    private(set) var keysObserver: NSObjectProtocol?
 
     convenience init(defaults: UserDefaults = .standard) {
         self.init(
@@ -98,7 +102,7 @@ final class DrawController: DrawControlling {
         return shownScreens.first { $0.frame.contains(point) } ?? shownScreens.first
     }
 
-    /// The toolbar and the observer of the screens. `showMode` makes the overlays.
+    /// The toolbar, the observer of the screens and the observer of the settings. `showMode` makes the overlays.
     private func openWindows() {
         let panel = ToolbarPanel(session: session)
         moveToBottomCentre(panel)
@@ -107,6 +111,12 @@ final class DrawController: DrawControlling {
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.screensChanged() }
+        }
+        // `UserDefaults` posts this on the thread that writes a value. The app writes on the main thread only.
+        keysObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification, object: session.toolbarKeys.defaults, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.toolbarPanel?.toolbarView.showKeys() }
         }
     }
 
@@ -146,10 +156,11 @@ final class DrawController: DrawControlling {
     }
 
     private func closeWindows() {
-        if let observer = screenObserver {
+        for observer in [screenObserver, keysObserver].compactMap({ $0 }) {
             NotificationCenter.default.removeObserver(observer)
-            screenObserver = nil
         }
+        screenObserver = nil
+        keysObserver = nil
         let closed: [NSWindow] = overlays + (toolbarPanel.map { [$0] } ?? [])
         overlays = []
         toolbarPanel = nil

@@ -410,7 +410,7 @@ import Testing
         let controller = stage.controller
         // Before the first use.
         #expect(controller.overlays.isEmpty && controller.toolbarPanel == nil)
-        #expect(controller.timer == nil && controller.screenObserver == nil)
+        #expect(controller.timer == nil && controller.screenObserver == nil && controller.keysObserver == nil)
 
         controller.toggleDrawing()
         stage.session.drawLine(row: 0)
@@ -418,14 +418,14 @@ import Testing
         stage.session.drawLine(row: 1)
         let windows: [NSWindow] = controller.overlays + [controller.toolbarPanel].compactMap { $0 }
         let timer = controller.timer
-        #expect(windows.count == 3 && timer != nil && controller.screenObserver != nil)
+        #expect(windows.count == 3 && timer != nil && controller.screenObserver != nil && controller.keysObserver != nil)
 
         // Esc turns drawing off in the same way as the draw hotkey.
         stage.session.escape()
         #expect(controller.mode == .off)
         #expect(controller.overlays.isEmpty && controller.toolbarPanel == nil)
         #expect(controller.timer == nil && timer?.isValid == false)
-        #expect(controller.screenObserver == nil)
+        #expect(controller.screenObserver == nil && controller.keysObserver == nil)
         #expect(windows.allSatisfy { !$0.isVisible })
 
         // The kept marks are data only: a tick and a change of the screens do nothing.
