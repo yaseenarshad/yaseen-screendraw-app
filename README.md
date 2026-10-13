@@ -27,12 +27,13 @@ The menu bar icon is a pencil in a circle. The circle is filled while the mode i
 | Control-Option-D | Turns drawing on and off. A toolbar shows at the bottom centre of the screen that has the pointer. |
 | Control-Option-C | Changes between drawing and click-through. It does nothing while drawing is off. |
 | Esc | Cancels the text that is open. With no open text, it clears all the marks and stops drawing. |
+| Delete | Clears all the marks. Drawing stays on. Command-Z brings the marks back. |
 | Command-Z | Undo. |
 | Shift-Command-Z | Redo. |
 
 - Control-Option-D and Control-Option-C work from each app. You can change the two (see "Settings").
-- Esc, Command-Z and Shift-Command-Z work only in mode drawing. In click-through, each key goes to the app below.
-- While a text is open, Command-Z and Shift-Command-Z are for the typing.
+- Esc, Delete, Command-Z and Shift-Command-Z work only in mode drawing. In click-through, each key goes to the app below.
+- While a text is open, Delete, Command-Z and Shift-Command-Z are for the typing.
 - Undo goes back 200 steps.
 
 ## The toolbar

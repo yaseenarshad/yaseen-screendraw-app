@@ -249,11 +249,18 @@ final class OverlayView: NSView, NSTextViewDelegate {
         cursor.set()
     }
 
-    /// Esc. Each other key stops here: no call to super, so a key does not beep and does not go
-    /// to the app below.
+    /// Esc and Delete. Each other key stops here: no call to super, so a key does not beep and
+    /// does not go to the app below.
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 {
+        switch event.keyCode {
+        case 53:
             session.escape()
+        case 51, 117:
+            // Delete and Forward Delete clear each mark, as the Clear all button does. Drawing stays on.
+            // While a text is open, the text field has the keyboard, and Delete is for the typing.
+            session.clearAll()
+        default:
+            break
         }
     }
 
