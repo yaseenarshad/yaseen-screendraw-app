@@ -448,6 +448,44 @@ import Testing
 
     // MARK: The keys
 
+    @Test func row2_20_deleteClearsEachMarkAndDrawingStaysOn() throws {
+        let stage = Stage()
+        let view = stage.view
+        try stage.drag(from: point(50, 50), to: point(250, 50))
+        try stage.drag(from: point(50, 100), to: point(250, 100))
+
+        // Delete: the same as the Clear all button. Drawing stays on.
+        view.keyDown(with: try stage.key(51))
+        #expect(stage.session.mode == .drawing && stage.session.markCount == 0)
+        #expect(view.markLayers.isEmpty)
+        // One Undo brings the marks back (row 2.14).
+        #expect(view.performKeyEquivalent(with: try stage.key(6, "z", flags: .command)))
+        #expect(stage.session.markCount == 2)
+
+        // Forward Delete does the same.
+        view.keyDown(with: try stage.key(117))
+        #expect(stage.session.mode == .drawing && stage.session.markCount == 0)
+        // With no mark, Delete does nothing. It makes no empty Undo step.
+        view.keyDown(with: try stage.key(51))
+        #expect(view.performKeyEquivalent(with: try stage.key(6, "z", flags: .command)))
+        #expect(stage.session.markCount == 2)
+    }
+
+    @Test func row2_20_deleteIsForTheTypingWhileATextIsOpen() throws {
+        let stage = Stage()
+        try stage.drag(from: point(50, 50), to: point(250, 50))
+        stage.session.selectTool(.text)
+        try stage.click(at: point(100, 100))
+        let field = try #require(stage.view.textView)
+        field.insertText("Word", replacementRange: NSRange(location: NSNotFound, length: 0))
+
+        // The text field has the keyboard. Its Delete removes one letter, and the marks stay.
+        field.doCommand(by: #selector(NSResponder.deleteBackward(_:)))
+        #expect(field.string == "Wor")
+        #expect(stage.view.textView === field)
+        #expect(stage.session.markCount == 1)
+    }
+
     @Test func row1_10_theKeysStopAtTheOverlay() throws {
         let stage = Stage()
         let view = stage.view
