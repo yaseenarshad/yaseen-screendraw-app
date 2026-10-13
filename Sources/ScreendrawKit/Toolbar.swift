@@ -290,7 +290,8 @@ final class ToolbarPanel: NSPanel {
         sharingType = .none
         contentView = toolbarView
         // One level above the overlays. A click on an overlay brings that overlay to the front
-        // of its level, and the toolbar must stay above it.
-        level = .screenSaver
+        // of its level, and the toolbar must stay above it. It is still below the freeze of
+        // Yaseen Screenshot.
+        level = NSWindow.Level(rawValue: OverlayWindow.overlayLevel.rawValue + 1)
     }
 }
