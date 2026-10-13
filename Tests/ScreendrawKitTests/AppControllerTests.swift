@@ -207,6 +207,65 @@ import Testing
         #expect(app.statusMenu.symbolName == "pencil.tip.crop.circle.fill")
     }
 
+    /// The shell with the real drawing part, and no window on a screen. The Close button, Esc and
+    /// a tool of the toolbar change the mode inside the drawing part. The menu and the menu bar
+    /// symbol must follow each change.
+    @Test func theMenuFollowsTheModeChangesOfTheRealDrawingPart() throws {
+        let real = DrawController(
+            defaults: defaults, now: { 0 }, screens: { [Screens.leftScreen] }, pointer: { .zero }
+        )
+        let app = AppController(draw: real, store: SettingsStore(defaults: defaults), hotKeys: hotKeys, loginItem: loginItem)
+        app.start()
+        keeper.apps.append(app)
+        let drawRow = try row("Start drawing", of: app)
+        let clickThroughRow = try row("Click through", of: app)
+        let settingsRow = try row("Settings…", of: app)
+        /// The title of the first row, the symbol, and the two rows that follow the mode.
+        func menu() -> [String] {
+            [
+                drawRow.title,
+                app.statusMenu.symbolName,
+                clickThroughRow.isEnabled ? (clickThroughRow.state == .on ? "click-through on" : "click-through off") : "no click-through",
+                settingsRow.isEnabled ? "settings" : "no settings",
+            ]
+        }
+        let off = ["Start drawing", "pencil.tip.crop.circle", "no click-through", "settings"]
+        let drawing = ["Stop drawing", "pencil.tip.crop.circle.fill", "click-through off", "no settings"]
+        let clickThrough = ["Stop drawing", "pencil.tip.crop.circle.fill", "click-through on", "settings"]
+        #expect(menu() == off)
+
+        // The draw hotkey, and then the Close button of the toolbar.
+        hotKeys.press(controlOptionD)
+        #expect(menu() == drawing)
+        try #require(real.toolbarPanel).toolbarView.press("Close")
+        #expect(real.mode == .off && menu() == off)
+
+        // The draw hotkey, a mark, and then Esc on the overlay.
+        hotKeys.press(controlOptionD)
+        real.session.drawLine()
+        let esc = try #require(NSEvent.keyEvent(
+            with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: 0, context: nil,
+            characters: "\u{1B}", charactersIgnoringModifiers: "\u{1B}", isARepeat: false, keyCode: UInt16(kVK_Escape)
+        ))
+        try #require(real.overlays.first).overlayView.keyDown(with: esc)
+        #expect(real.mode == .off && menu() == off)
+        #expect(real.session.markCount == 0)
+
+        // Click-through, and then a click on a tool: the mode is drawing again.
+        hotKeys.press(controlOptionD)
+        hotKeys.press(controlOptionC)
+        #expect(menu() == clickThrough)
+        try #require(real.toolbarPanel).toolbarView.press("Arrow")
+        #expect(real.mode == .drawing && menu() == drawing)
+
+        // The menu row "Stop drawing" in mode click-through.
+        click(clickThroughRow)
+        #expect(menu() == clickThrough)
+        click(drawRow)
+        #expect(real.mode == .off && menu() == off)
+        #expect(real.overlays.isEmpty && real.toolbarPanel == nil)
+    }
+
     @Test func row5_2_theMenuShowsANewHotKeyAndTheNewKeyChangesTheMode() throws {
         let app = startApp()
         let controlOptionS = HotKeyCombo(keyCode: UInt32(kVK_ANSI_S), modifiers: [.control, .option])

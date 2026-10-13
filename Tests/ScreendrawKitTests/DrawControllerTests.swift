@@ -425,6 +425,44 @@ import Testing
         #expect(controller.overlays.isEmpty && controller.timer == nil && stage.session.markCount == 1)
     }
 
+    /// YAZ-2789: with drawing off, the windows are closed, not hidden. Nothing keeps a closed
+    /// window, its view or its layers in the memory.
+    @Test func row4_14_theClosedWindowsLeaveTheMemory() async {
+        final class Weak {
+            weak var object: AnyObject?
+            init(_ object: AnyObject) { self.object = object }
+        }
+        let stage = Stage()
+        var closed: [Weak] = []
+        func keep(_ windows: [NSWindow]) {
+            closed += windows.flatMap { [Weak($0), Weak($0.contentView!)] }
+        }
+        autoreleasepool {
+            let controller = stage.controller
+            controller.toggleDrawing()
+            // A line and a text, so the views have layers and had a text field.
+            stage.session.drawLine()
+            stage.session.selectTool(.text)
+            stage.session.click(at: point(100, 100))
+            stage.session.textChanged("Note")
+            stage.session.completeText()
+            keep(controller.overlays + [controller.toolbarPanel!])
+            // Click-through makes new overlays and closes the old ones.
+            controller.toggleClickThrough()
+            keep(controller.overlays)
+            controller.toggleDrawing()
+        }
+        #expect(closed.count == 10)
+
+        // The controller lets the closed windows go on the next turn of the main queue.
+        await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+            DispatchQueue.main.async { done.resume() }
+        }
+        #expect(closed.allSatisfy { $0.object == nil })
+        // The Sticky marks are still in the session: they are data only.
+        #expect(stage.session.markCount == 2)
+    }
+
     // MARK: The contract with the shell
 
     @Test func theMenuRowClearAllClearsAndOneUndoBringsTheMarksBack() {
