@@ -62,7 +62,8 @@ struct SettingsView: View {
 final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let model: SettingsModel
     private let window: NSWindow
-    private var keyMonitor: Any?
+    /// Exists only while the settings window has the keyboard.
+    private(set) var keyMonitor: Any?
 
     init(model: SettingsModel) {
         self.model = model
@@ -84,17 +85,6 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         host.sizingOptions = [.preferredContentSize]
         window.contentViewController = host
         window.center()
-
-        // A monitor sees a key before the window does. Thus the recorder also gets a combination with Command,
-        // which the window would handle as a key equivalent.
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            // Only plain values cross into the main actor: `NSEvent` is not `Sendable`.
-            guard let combo = HotKeyCombo(keyDown: event) else { return event }
-            let windowNumber = event.windowNumber
-            let used = MainActor.assumeIsolated { self?.keyDown(combo, windowNumber: windowNumber) ?? false }
-            // `nil` tells AppKit that the key is used.
-            return used ? nil : event
-        }
     }
 
     deinit {
@@ -107,6 +97,28 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         // An accessory app is not active by default. Without this, the window opens behind other apps.
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
+    }
+
+    // MARK: The keys
+
+    /// A monitor sees a key before the window does. Thus the recorder also gets a combination with Command,
+    /// which the window would handle as a key equivalent.
+    private func startKeyMonitor() {
+        guard keyMonitor == nil else { return }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            // Only plain values cross into the main actor: `NSEvent` is not `Sendable`.
+            guard let combo = HotKeyCombo(keyDown: event) else { return event }
+            let windowNumber = event.windowNumber
+            let used = MainActor.assumeIsolated { self?.keyDown(combo, windowNumber: windowNumber) ?? false }
+            // `nil` tells AppKit that the key is used.
+            return used ? nil : event
+        }
+    }
+
+    /// The keys of the overlay (Esc, Undo, the typing of a text) must not go through a monitor of this window.
+    private func stopKeyMonitor() {
+        if let keyMonitor = keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+        keyMonitor = nil
     }
 
     /// Returns `true` when the key is used.
@@ -123,17 +135,20 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
     // MARK: NSWindowDelegate
 
+    func windowDidBecomeKey(_ notification: Notification) {
+        // The user can come back from System Settings, Login Items.
+        model.refreshOpenAtLogin()
+        startKeyMonitor()
+    }
+
     // A recorder must not stay open with the two global hotkeys off.
     func windowDidResignKey(_ notification: Notification) {
         model.cancelRecording()
+        stopKeyMonitor()
     }
 
     func windowWillClose(_ notification: Notification) {
         model.cancelRecording()
-    }
-
-    func windowDidBecomeKey(_ notification: Notification) {
-        // The user can come back from System Settings, Login Items.
-        model.refreshOpenAtLogin()
+        stopKeyMonitor()
     }
 }

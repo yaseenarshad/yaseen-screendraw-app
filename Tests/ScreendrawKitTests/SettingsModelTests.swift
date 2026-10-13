@@ -344,6 +344,37 @@ import Testing
         #expect(model.loginItemProblem == nil)
     }
 
+    /// The delegate calls of the settings window, with no window on a screen. The test makes the
+    /// calls that AppKit makes. The key monitor is local: it sees only the keys of this process.
+    @Test func row5_6_theRecorderAndTheKeyMonitorStopWhenTheWindowLosesTheKeyboard() {
+        let hotKeys = FakeHotKeyRegistrar()
+        let model = makeModel(hotKeys: hotKeys)
+        let controller = SettingsWindowController(model: model)
+        let became = Notification(name: NSWindow.didBecomeKeyNotification)
+        let resigned = Notification(name: NSWindow.didResignKeyNotification)
+        // Before the window has the keyboard, no monitor exists.
+        #expect(controller.keyMonitor == nil)
+
+        controller.windowDidBecomeKey(became)
+        #expect(controller.keyMonitor != nil)
+        model.startRecording(.draw)
+        #expect(hotKeys.registered.isEmpty)
+
+        // A different window takes the keyboard (the overlay, or a different app).
+        controller.windowDidResignKey(resigned)
+        #expect(controller.keyMonitor == nil)
+        #expect(model.recording == nil)
+        #expect(hotKeys.registered == [.draw: controlOptionD, .clickThrough: controlOptionC])
+
+        // The window closes while it records.
+        controller.windowDidBecomeKey(became)
+        model.startRecording(.clickThrough)
+        controller.windowWillClose(Notification(name: NSWindow.willCloseNotification))
+        #expect(controller.keyMonitor == nil)
+        #expect(model.recording == nil)
+        #expect(hotKeys.registered == [.draw: controlOptionD, .clickThrough: controlOptionC])
+    }
+
     /// The form lays out with no window. Each line for a problem makes it higher.
     @Test func theFormHasASizeAndGrowsWithTheProblemLines() {
         let hotKeys = FakeHotKeyRegistrar()
