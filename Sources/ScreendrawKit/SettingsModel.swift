@@ -3,13 +3,15 @@ import Carbon.HIToolbox
 
 /// The state and the rules of the settings window, with no window and no view.
 ///
-/// The model owns the changes of the settings: it registers the two hotkeys, stores them,
-/// and asks macOS for "open at login". The app and the window only call it. Thus a test proves the rules.
+/// The model owns the changes of the settings: it registers the two hotkeys, stores them, stores
+/// the keys of the toolbar, and asks macOS for "open at login". The app and the window only call it.
+/// Thus a test proves the rules.
 @MainActor
 final class SettingsModel: ObservableObject {
     static let needsModifierText = "A hotkey needs ⌘, ⌃ or ⌥ with the key, or a function key."
     static let sameKeyText = "The two hotkeys must be different."
     static let refusedText = "macOS refused this hotkey. A different app can have it."
+    static let toolbarKeyNotValidText = "A toolbar key is one letter, digit or punctuation mark, with no ⌘, ⌃ or ⌥."
     static let loginItemNotAvailableText = "Open at login works only in the installed app."
     static let loginItemNotChangedText = "macOS did not change this setting. Look at Login Items in System Settings."
 
@@ -18,6 +20,12 @@ final class SettingsModel: ObservableObject {
     @Published private(set) var recording: HotKeyKind?
     /// The red line below the row of a hotkey.
     @Published private var hotKeyProblems: [HotKeyKind: String] = [:]
+    /// The key of each toolbar action, in lower case.
+    @Published private var toolbarKeys: [ToolbarAction: String]
+    /// The toolbar action whose key waits for a key. The two global hotkeys are off during that time.
+    @Published private(set) var recordingToolbarKey: ToolbarAction?
+    /// The red line below the toolbar keys.
+    @Published private(set) var toolbarKeyProblem: String?
     /// The real state from macOS, not a stored value.
     @Published private(set) var openAtLogin = false
     /// The red line below the switch.
@@ -35,6 +43,7 @@ final class SettingsModel: ObservableObject {
         self.hotKeys = hotKeys
         self.loginItem = loginItem
         combos = [.draw: store.hotKey(.draw), .clickThrough: store.hotKey(.clickThrough)]
+        toolbarKeys = store.toolbarKeys.all
         refreshOpenAtLogin()
     }
 
@@ -61,28 +70,42 @@ final class SettingsModel: ObservableObject {
     /// "Change…" of one row.
     func startRecording(_ kind: HotKeyKind) {
         guard recording != kind else { return }
+        pauseHotKeys()
+        recordingToolbarKey = nil
+        recording = kind
+    }
+
+    /// The start of each recorder, of a hotkey or of a toolbar key (rows 5.6 and 5.26).
+    private func pauseHotKeys() {
         // With the hotkeys still registered, macOS would change the mode and the row would not get the key.
         // Thus the user can also record a key that is a hotkey now (row 5.6).
         for each in HotKeyKind.allCases { hotKeys.unregister(each) }
         // A new try starts with no old message.
         hotKeyProblems = [:]
-        recording = kind
+        toolbarKeyProblem = nil
     }
 
     /// Stops the recorder with no change. The two hotkeys work again.
     func cancelRecording() {
-        guard recording != nil else { return }
+        guard recording != nil || recordingToolbarKey != nil else { return }
         recording = nil
+        recordingToolbarKey = nil
         registerHotKeys()
     }
 
     /// A key-down in the settings window. Returns `true` when the model used the key.
-    func keyDown(_ combo: HotKeyCombo) -> Bool {
-        guard let kind = recording else { return false }
+    /// `characters` is what the key types, with no Command, Control or Option. Only a toolbar key needs it.
+    func keyDown(_ combo: HotKeyCombo, characters: String? = nil) -> Bool {
+        guard recording != nil || recordingToolbarKey != nil else { return false }
         if combo.keyCode == UInt32(kVK_Escape) {
             cancelRecording()
             return true
         }
+        if let action = recordingToolbarKey {
+            recordToolbarKey(ToolbarKeys.key(typed: characters, modifiers: combo.modifiers), for: action)
+            return true
+        }
+        guard let kind = recording else { return false }
 
         recording = nil
         let reason = refusal(of: combo, for: kind)
@@ -107,6 +130,52 @@ final class SettingsModel: ObservableObject {
         if !combo.isValid { return SettingsModel.needsModifierText }
         if combo == hotKey(kind.other) { return SettingsModel.sameKeyText }
         return nil
+    }
+
+    // MARK: The keys of the toolbar
+
+    func toolbarKey(_ action: ToolbarAction) -> String {
+        toolbarKeys[action] ?? action.startKey
+    }
+
+    /// A click on the key of one toolbar action. The recorder is the one of the hotkeys: one
+    /// row records at a time, and the two global hotkeys are paused (row 5.26).
+    func startRecordingToolbarKey(_ action: ToolbarAction) {
+        guard recordingToolbarKey != action else { return }
+        pauseHotKeys()
+        recording = nil
+        recordingToolbarKey = action
+    }
+
+    /// The recorder got a key. `key` is `nil` when the key press is not a valid toolbar key.
+    private func recordToolbarKey(_ key: String?, for action: ToolbarAction) {
+        recordingToolbarKey = nil
+        if let key = key {
+            if let owner = ToolbarAction.all.first(where: { $0 != action && toolbarKey($0) == key }) {
+                // The old key stays, and the red line names the action that has the key (row 5.22).
+                toolbarKeyProblem = SettingsModel.toolbarKeyTakenText(key, owner: owner)
+            } else {
+                // The drawing part reads the store when a key arrives, so the key works at once (row 5.23).
+                store.toolbarKeys.set(key, for: action)
+                toolbarKeys = store.toolbarKeys.all
+            }
+        } else {
+            toolbarKeyProblem = SettingsModel.toolbarKeyNotValidText
+        }
+        // The recorder paused the two hotkeys.
+        registerHotKeys()
+    }
+
+    static func toolbarKeyTakenText(_ key: String, owner: ToolbarAction) -> String {
+        "The key \(key.uppercased()) belongs to \(owner.name)."
+    }
+
+    /// "Reset to the start keys" (row 5.24). The two hotkeys do not change.
+    func resetToolbarKeys() {
+        cancelRecording()
+        store.toolbarKeys.reset()
+        toolbarKeys = store.toolbarKeys.all
+        toolbarKeyProblem = nil
     }
 
     // MARK: Open at login

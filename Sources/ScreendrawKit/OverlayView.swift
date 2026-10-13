@@ -249,8 +249,12 @@ final class OverlayView: NSView, NSTextViewDelegate {
         cursor.set()
     }
 
-    /// Esc and Delete. Each other key stops here: no call to super, so a key does not beep and
-    /// does not go to the app below.
+    /// Esc, Delete and the keys of the toolbar. Each other key stops here: no call to super, so a
+    /// key does not beep and does not go to the app below.
+    ///
+    /// The toolbar keys are not global hotkeys. This view exists only while drawing is on, and
+    /// it gets a key only in mode drawing. In click-through and in mode off, a key goes to the
+    /// app below (row 2.34).
     override func keyDown(with event: NSEvent) {
         switch event.keyCode {
         case 53:
@@ -260,7 +264,11 @@ final class OverlayView: NSView, NSTextViewDelegate {
             // While a text is open, the text field has the keyboard, and Delete is for the typing.
             session.clearAll()
         default:
-            break
+            // A key that stays down makes one change only (row 2.38).
+            guard !event.isARepeat,
+                  let key = ToolbarKeys.key(typed: event.charactersIgnoringModifiers, modifiers: event.modifierFlags)
+            else { return }
+            session.toolbarKey(key)
         }
     }
 

@@ -2,6 +2,7 @@ import AppKit
 
 /// The toolbar (D5, D6). Row 1: the six tools, Undo, Redo, Clear all, and Close at the right end.
 /// Row 2: the three sizes, the six colours, and the switch Fade, Hold, Sticky.
+/// Each button shows its key in its bottom right corner (D11).
 ///
 /// A thin adapter: a click calls `DrawSession`, and `refresh()` shows the state that it reads there.
 final class Toolbar: NSView {
@@ -29,6 +30,9 @@ final class Toolbar: NSView {
         redoButton = ToolbarButton(name: "Redo", image: Toolbar.symbol("arrow.uturn.forward", name: "Redo")) {
             [session] in session.redo()
         }
+        // The four fixed keys (row 2.32). They are not in Settings.
+        undoButton.key = "⌘Z"
+        redoButton.key = "⇧⌘Z"
         super.init(frame: .zero)
         wantsLayer = true
         layer?.backgroundColor = CGColor(gray: 0.13, alpha: 0.96)
@@ -49,6 +53,8 @@ final class Toolbar: NSView {
         let close = ToolbarButton(name: "Close", image: Toolbar.symbol("xmark", name: "Close")) {
             [session] in session.stop()
         }
+        clear.key = "⌫"
+        close.key = "esc"
         let sizes = MarkSize.allCases.map { size -> ToolbarButton in
             let button = ToolbarButton(name: size.name, image: Toolbar.dot(for: size)) { [session] in session.setSize(size) }
             sizeButtons[size] = button
@@ -80,6 +86,7 @@ final class Toolbar: NSView {
             owner: self
         ))
         refresh()
+        showKeys()
     }
 
     @available(*, unavailable)
@@ -98,6 +105,16 @@ final class Toolbar: NSView {
         for (stay, button) in stayButtons { button.isOn = stay == session.stay }
         if undoButton.isEnabled != session.canUndo { undoButton.isEnabled = session.canUndo }
         if redoButton.isEnabled != session.canRedo { redoButton.isEnabled = session.canRedo }
+    }
+
+    /// Shows the key of each tool, size, colour and stay button (row 2.32). The keys come from the
+    /// store, so the buttons show a key that the settings window changed (row 5.23).
+    func showKeys() {
+        let keys = session.toolbarKeys.all
+        for (tool, button) in toolButtons { button.key = keys[.tool(tool)]?.uppercased() ?? "" }
+        for (size, button) in sizeButtons { button.key = keys[.size(size)]?.uppercased() ?? "" }
+        for (color, button) in colorButtons { button.key = keys[.color(color)]?.uppercased() ?? "" }
+        for (stay, button) in stayButtons { button.key = keys[.stay(stay)]?.uppercased() ?? "" }
     }
 
     /// Where the toolbar shows when drawing starts: the bottom centre of the screen.
@@ -207,16 +224,35 @@ final class Toolbar: NSView {
     }
 }
 
-/// One button of the toolbar: a picture or its name, and a mark when it is selected.
+/// One button of the toolbar: a picture or its name, its key in the bottom right corner, and a
+/// mark when it is selected.
 final class ToolbarButton: NSButton {
+    /// The picture or the name is this much above the middle, so the key below it does not touch it.
+    fileprivate static let lift: CGFloat = 3
+
     let name: String
     private let onClick: () -> Void
+
+    /// The key as the button shows it: "W", "⌘Z", "esc". An empty text shows nothing.
+    var key = "" {
+        didSet {
+            if key != oldValue { needsDisplay = true }
+        }
+    }
 
     var isOn = false {
         didSet {
             guard isOn != oldValue else { return }
             layer?.backgroundColor = isOn ? CGColor(gray: 1, alpha: 0.28) : nil
+            // The key is lighter on the light background of the selected button.
+            needsDisplay = true
         }
+    }
+
+    // The cell draws the picture and the name above the middle.
+    override class var cellClass: AnyClass? {
+        get { ToolbarButtonCell.self }
+        set {}
     }
 
     /// With no image, the button shows its name.
@@ -260,6 +296,40 @@ final class ToolbarButton: NSButton {
 
     // The toolbar never has the keyboard. The first click must already press the button.
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    // MARK: The key
+
+    /// The key is small and grey, as in the draw app (row 2.32). It is lighter on a selected
+    /// button, and weaker on a button that is not available.
+    var keyText: NSAttributedString {
+        let strength: CGFloat = !isEnabled ? 0.3 : (isOn ? 0.9 : 0.62)
+        return NSAttributedString(string: key, attributes: [
+            .font: NSFont.systemFont(ofSize: 8, weight: .semibold),
+            .foregroundColor: NSColor(white: 1, alpha: strength),
+        ])
+    }
+
+    /// Where the key is: the bottom right corner of the button. The button counts from its top.
+    var keyFrame: CGRect {
+        let size = keyText.size()
+        return CGRect(x: bounds.maxX - size.width - 2.5, y: bounds.maxY - size.height - 0.5, width: size.width, height: size.height)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        if !key.isEmpty { keyText.draw(at: keyFrame.origin) }
+    }
+}
+
+/// Draws the picture or the name of a `ToolbarButton` above the middle of the button.
+private final class ToolbarButtonCell: NSButtonCell {
+    override func drawImage(_ image: NSImage, withFrame frame: NSRect, in controlView: NSView) {
+        super.drawImage(image, withFrame: frame.offsetBy(dx: 0, dy: -ToolbarButton.lift), in: controlView)
+    }
+
+    override func drawTitle(_ title: NSAttributedString, withFrame frame: NSRect, in controlView: NSView) -> NSRect {
+        super.drawTitle(title, withFrame: frame.offsetBy(dx: 0, dy: -ToolbarButton.lift), in: controlView)
+    }
 }
 
 /// The panel of the toolbar: one for all screens, above the overlays. It never takes the
