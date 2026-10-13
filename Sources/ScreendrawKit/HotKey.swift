@@ -2,19 +2,19 @@ import AppKit
 import Carbon.HIToolbox
 
 /// A key combination for a global hotkey.
-public struct HotKeyCombo: Equatable {
+struct HotKeyCombo: Equatable {
     /// The virtual key code (`kVK_…`).
-    public var keyCode: UInt32
+    var keyCode: UInt32
     /// Only Shift, Control, Option and Command count.
-    public var modifiers: NSEvent.ModifierFlags
+    var modifiers: NSEvent.ModifierFlags
 
-    public init(keyCode: UInt32, modifiers: NSEvent.ModifierFlags) {
+    init(keyCode: UInt32, modifiers: NSEvent.ModifierFlags) {
         self.keyCode = keyCode
         self.modifiers = modifiers.intersection([.shift, .control, .option, .command])
     }
 
     /// The combination of a key-down event. `nil` for any other event.
-    public init?(keyDown event: NSEvent) {
+    init?(keyDown event: NSEvent) {
         guard event.type == .keyDown else { return nil }
         self.init(keyCode: UInt32(event.keyCode), modifiers: event.modifierFlags)
     }
@@ -22,7 +22,7 @@ public struct HotKeyCombo: Equatable {
     /// A hotkey needs Command, Control or Option, or it is a function key (D7).
     /// With only Shift, or with no modifier, the hotkey would take a key that the user types in text.
     /// Escape is never a hotkey: it stops the recorder in the settings window.
-    public var isValid: Bool {
+    var isValid: Bool {
         guard keyCode != UInt32(kVK_Escape) else { return false }
         return isFunctionKey || !modifiers.isDisjoint(with: [.command, .control, .option])
     }
@@ -32,7 +32,7 @@ public struct HotKeyCombo: Equatable {
     }
 
     /// The text form, for example "⌃⌥D". The modifiers are in the order that macOS uses: ⌃⌥⇧⌘.
-    public var text: String {
+    var text: String {
         var result = ""
         if modifiers.contains(.control) { result += "⌃" }
         if modifiers.contains(.option) { result += "⌥" }
@@ -126,14 +126,14 @@ public struct HotKeyCombo: Equatable {
 }
 
 /// The two global hotkeys of the app (D7). The raw value is the id that macOS gets for the hotkey.
-public enum HotKeyKind: UInt32, CaseIterable {
+enum HotKeyKind: UInt32, CaseIterable {
     /// Draw on / off.
     case draw = 1
     /// The clicks go to the apps and come back.
     case clickThrough = 2
 
     /// The hotkey at the start: Control-Option-D or Control-Option-C.
-    public var startValue: HotKeyCombo {
+    var startValue: HotKeyCombo {
         switch self {
         case .draw: return HotKeyCombo(keyCode: UInt32(kVK_ANSI_D), modifiers: [.control, .option])
         case .clickThrough: return HotKeyCombo(keyCode: UInt32(kVK_ANSI_C), modifiers: [.control, .option])
@@ -147,7 +147,7 @@ public enum HotKeyKind: UInt32, CaseIterable {
 
 /// The calls that the app needs from `HotKeyCenter`.
 /// A test uses a fake one, so it never takes a real global hotkey.
-public protocol HotKeyRegistering: AnyObject {
+protocol HotKeyRegistering: AnyObject {
     /// Runs on the main thread each time the user presses a registered hotkey.
     var onHotKey: (HotKeyKind) -> Void { get set }
     /// Replaces the registered hotkey of this kind. Returns `false` when macOS refuses the combination.
@@ -157,8 +157,8 @@ public protocol HotKeyRegistering: AnyObject {
 }
 
 /// Registers the global hotkeys with `RegisterEventHotKey`. This needs no permission.
-public final class HotKeyCenter: HotKeyRegistering {
-    public var onHotKey: (HotKeyKind) -> Void = { _ in }
+final class HotKeyCenter: HotKeyRegistering {
+    var onHotKey: (HotKeyKind) -> Void = { _ in }
 
     /// "YSDK". With the id of the kind, it tells macOS which hotkey this is.
     private static let signature: OSType = 0x5953_444B
@@ -166,7 +166,7 @@ public final class HotKeyCenter: HotKeyRegistering {
     private var hotKeys: [HotKeyKind: EventHotKeyRef] = [:]
     private var handler: EventHandlerRef?
 
-    public init() {}
+    init() {}
 
     deinit {
         for kind in HotKeyKind.allCases { unregister(kind) }
@@ -174,7 +174,7 @@ public final class HotKeyCenter: HotKeyRegistering {
     }
 
     @discardableResult
-    public func register(_ combo: HotKeyCombo, for kind: HotKeyKind) -> Bool {
+    func register(_ combo: HotKeyCombo, for kind: HotKeyKind) -> Bool {
         unregister(kind)
         guard installHandler() else { return false }
         var reference: EventHotKeyRef?
@@ -191,7 +191,7 @@ public final class HotKeyCenter: HotKeyRegistering {
         return true
     }
 
-    public func unregister(_ kind: HotKeyKind) {
+    func unregister(_ kind: HotKeyKind) {
         if let hotKey = hotKeys.removeValue(forKey: kind) { UnregisterEventHotKey(hotKey) }
     }
 

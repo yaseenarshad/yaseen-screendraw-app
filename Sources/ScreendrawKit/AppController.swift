@@ -4,10 +4,11 @@ import os
 /// The app shell: it starts the app and connects the two hotkeys and the menu to the drawing part.
 ///
 /// The shell knows the drawing part only as a `DrawControlling`.
+/// `main()` is the one call that the executable makes. No other name of the library is public.
 @MainActor
 public final class AppController: NSObject, NSApplicationDelegate {
     /// What "Settings…" does. The default opens the settings window.
-    public lazy var openSettings: () -> Void = { [weak self] in self?.showSettingsWindow() }
+    lazy var openSettings: () -> Void = { [weak self] in self?.showSettingsWindow() }
 
     let statusMenu = StatusMenu()
     let settings: SettingsModel
@@ -18,7 +19,7 @@ public final class AppController: NSObject, NSApplicationDelegate {
     private let log = Logger(subsystem: "com.yaseenarshad.yaseenscreendraw", category: "shell")
     private var settingsWindow: SettingsWindowController?
 
-    public init(draw: DrawControlling, store: SettingsStore, hotKeys: HotKeyRegistering, loginItem: LoginItem) {
+    init(draw: DrawControlling, store: SettingsStore, hotKeys: HotKeyRegistering, loginItem: LoginItem) {
         self.draw = draw
         self.store = store
         self.hotKeys = hotKeys

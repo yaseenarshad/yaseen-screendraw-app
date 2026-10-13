@@ -4,27 +4,27 @@ import AppKit
 ///
 /// The `UserDefaults` is a parameter, so a test uses its own one.
 /// A value that is missing or broken gives the start value. The store never fails.
-public final class SettingsStore {
+final class SettingsStore {
     /// The start position of the menu bar icon: the distance from the right edge of the screen in points.
     /// It is on the visible side of the notch of the built-in display (row 5.10).
-    public static let firstStatusItemPosition = 460.0
+    static let firstStatusItemPosition = 460.0
 
     private let defaults: UserDefaults
 
-    public init(defaults: UserDefaults) {
+    init(defaults: UserDefaults) {
         self.defaults = defaults
     }
 
     // MARK: The two hotkeys
 
     /// The hotkey of this kind. The start value is Control-Option-D or Control-Option-C (row 5.7).
-    public func hotKey(_ kind: HotKeyKind) -> HotKeyCombo {
+    func hotKey(_ kind: HotKeyKind) -> HotKeyCombo {
         let combo = storedHotKey(kind)
         // The two hotkeys must be different (row 5.4). A stored pair that is not gives the start values.
         return combo == storedHotKey(kind.other) ? kind.startValue : combo
     }
 
-    public func setHotKey(_ combo: HotKeyCombo, for kind: HotKeyKind) {
+    func setHotKey(_ combo: HotKeyCombo, for kind: HotKeyKind) {
         defaults.set(Int(combo.keyCode), forKey: codeKey(kind))
         defaults.set(Int(combo.modifiers.rawValue), forKey: modifiersKey(kind))
     }
@@ -57,7 +57,7 @@ public final class SettingsStore {
 
     /// True after the first start tried to register the app as a login item. The app tries one time only.
     /// The state of "Open at login" is not here: it is in macOS (`LoginItem.isEnabled`).
-    public var loginItemWasTried: Bool {
+    var loginItemWasTried: Bool {
         get { defaults.object(forKey: "loginItemWasTried") as? Bool ?? false }
         set { defaults.set(newValue, forKey: "loginItemWasTried") }
     }
@@ -65,7 +65,7 @@ public final class SettingsStore {
     // MARK: The position of the menu bar icon
 
     /// The key that macOS reads for the position of the status item with this `autosaveName`.
-    public static func statusItemPositionKey(autosaveName: String) -> String {
+    static func statusItemPositionKey(autosaveName: String) -> String {
         "NSStatusItem Preferred Position \(autosaveName)"
     }
 
@@ -73,7 +73,7 @@ public final class SettingsStore {
     /// that place is behind the notch, and the user cannot see the icon (YAZ-2768).
     /// So the app sets a position before it makes the status item, but only when no position exists.
     /// A user who moved the icon keeps his place.
-    public func setFirstStatusItemPosition(autosaveName: String) {
+    func setFirstStatusItemPosition(autosaveName: String) {
         let key = SettingsStore.statusItemPositionKey(autosaveName: autosaveName)
         guard defaults.object(forKey: key) == nil else { return }
         defaults.set(SettingsStore.firstStatusItemPosition, forKey: key)

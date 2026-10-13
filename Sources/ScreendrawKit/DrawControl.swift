@@ -5,7 +5,7 @@ import Foundation
 /// - `off`: no overlay window exists. The screen works as usual.
 /// - `drawing`: the overlay takes the mouse and the keyboard.
 /// - `clickThrough`: the marks stay, and the mouse and the keyboard go to the apps below.
-public enum DrawMode: Equatable {
+enum DrawMode: Equatable {
     case off, drawing, clickThrough
 }
 
@@ -13,7 +13,7 @@ public enum DrawMode: Equatable {
 ///
 /// The shell does not know the overlay, the marks, or the toolbar.
 @MainActor
-public protocol DrawControlling: AnyObject {
+protocol DrawControlling: AnyObject {
     var mode: DrawMode { get }
 
     /// The drawing part calls this on the main thread after each change of `mode`.
