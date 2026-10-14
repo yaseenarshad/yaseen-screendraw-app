@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <b>Stop wiggling your mouse. Press one key and circle the exact spot, on top of any app.</b>
+  <b>Never say “no, look here” again. Draw the arrow that points at it.</b>
 </p>
 
 <p align="center">
