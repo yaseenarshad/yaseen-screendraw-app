@@ -187,7 +187,8 @@ import Testing
         var stage = Stage()
         stage.controller.toggleDrawing()
         var panel = try #require(stage.controller.toolbarPanel)
-        #expect(panel.frame.midX.rounded() == Screens.leftScreen.frame.midX)
+        // The origin is a whole point, so the middle can be half a point from the middle of the screen.
+        #expect(abs(panel.frame.midX - Screens.leftScreen.frame.midX) <= 0.5)
         #expect(panel.frame.minY == Screens.leftScreen.visibleFrame.minY + 24)
         #expect(Screens.leftScreen.visibleFrame.contains(panel.frame))
 
@@ -196,7 +197,6 @@ import Testing
         stage.desk.pointer = CGPoint(x: 1000, y: 100)
         stage.controller.toggleDrawing()
         panel = try #require(stage.controller.toolbarPanel)
-        // The origin is a whole point, so the middle can be half a point from the middle of the screen.
         #expect(abs(panel.frame.midX - Screens.rightScreen.frame.midX) <= 0.5)
         #expect(panel.frame.minY == Screens.rightScreen.visibleFrame.minY + 24)
     }
