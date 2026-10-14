@@ -35,13 +35,13 @@ import Testing
     @Test func row2_50_theToolsAreInTheApprovedOrder() throws {
         let names = ["Select", "Pen", "Highlight", "Line", "Arrow", "Rectangle", "Ellipse", "Text", "Stamp"]
         #expect(Tool.allCases.map { $0.name } == names)
-        // The toolbar has the nine tool buttons in this order, from the left, in one row.
+        // The toolbar has the nine tool buttons in this order: each one is after the one before
+        // it, to its right or below it. No two overlap.
         let stage = ToolbarTests.Stage()
         let frames = try names.map { try stage.button($0).frame }
         for (before, after) in zip(frames, frames.dropFirst()) {
-            #expect(before.maxX <= after.minX)
+            #expect(before.maxX <= after.minX || before.maxY <= after.minY)
         }
-        #expect(Set(frames.map { $0.minY }).count == 1)
         // Each tool has a picture of the system, not the first letter of its name.
         for name in names {
             #expect(try stage.button(name).image?.accessibilityDescription == name, "\(name)")

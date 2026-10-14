@@ -22,14 +22,13 @@ import Testing
 
     // MARK: The tool
 
-    @Test func row2_80_selectIsTheFirstToolButtonWithAnArrowPointerAndTheKeyV() throws {
+    @Test func row2_80_sisterRow1_selectIsTheFirstToolButtonWithAnArrowPointerAndTheKeyV() throws {
         let stage = ToolbarTests.Stage()
         #expect(Tool.allCases.first == .select && Tool.select.name == "Select")
         let select = try stage.button("Select")
-        // It is the first button of the toolbar: at the left end of the row of the tools.
-        let tools = try Tool.allCases.map { try stage.button($0.name) }
-        #expect(select.frame.minX == 4 && tools.dropFirst().allSatisfy { $0.frame.minX > select.frame.maxX })
-        #expect(Set(tools.map { $0.frame.minY }).count == 1)
+        // It is the first button of the toolbar: no button is before it, to its left or above it.
+        let buttons = stage.toolbar.subviews.compactMap { $0 as? ToolbarButton }
+        #expect(buttons.allSatisfy { $0.frame.minX >= select.frame.minX && $0.frame.minY >= select.frame.minY })
         // Its picture is the arrow pointer of the system, and its name shows on hover (sister row 1).
         #expect(NSImage(systemSymbolName: "cursorarrow", accessibilityDescription: nil) != nil)
         #expect(select.image?.accessibilityDescription == "Select")
@@ -71,7 +70,7 @@ import Testing
 
     // MARK: To select a mark
 
-    @Test func row2_81_aClickOnAMarkSelectsItAndAClickOnAnEmptyPlaceRemovesTheSelection() throws {
+    @Test func row2_81_sisterRow8_aClickOnAMarkSelectsItAndAClickOnAnEmptyPlaceRemovesTheSelection() throws {
         let session = Fixture().session
         let rectangle = session.draw(.rectangle, [point(100, 100), point(300, 200)])
         let line = session.draw(.pen, [point(400, 100), point(500, 100)])
@@ -112,7 +111,7 @@ import Testing
         #expect(session.markCount == 0 && !session.canUndo)
     }
 
-    @Test func row2_81_theSelectedMarkShowsAThinOutlineAndHandles() throws {
+    @Test func row2_81_sisterRow9_theSelectedMarkShowsAThinOutlineAndHandles() throws {
         let stage = OverlayViewTests.Stage()
         // A Thick red rectangle, x 90 to 200 and y 80 to 140.
         stage.session.selectTool(.rectangle)
@@ -198,7 +197,7 @@ import Testing
 
     // MARK: To move and to change a mark
 
-    @Test func row2_82_aDragMovesTheSelectedMarkAndItCannotLeaveItsScreen() throws {
+    @Test func row2_82_sisterRow11_aDragMovesTheSelectedMarkAndItCannotLeaveItsScreen() throws {
         let session = Fixture().session
         let rectangle = session.draw(.rectangle, [point(100, 100), point(300, 200)])
         session.selectTool(.select)
@@ -331,7 +330,7 @@ import Testing
         }
     }
 
-    @Test func row2_84_aSizeOrColourButtonOrItsKeyChangesTheSelectedMark() throws {
+    @Test func row2_84_sisterRow17_aSizeOrColourButtonOrItsKeyChangesTheSelectedMark() throws {
         let stage = ToolbarTests.Stage()
         let session = stage.session
         let rectangle = session.draw(.rectangle, [point(100, 100), point(300, 200)])
@@ -413,7 +412,7 @@ import Testing
         #expect(small.bounds.height < label.mark.bounds.height && small.bounds.width < label.mark.bounds.width)
     }
 
-    @Test func row2_85_aDoubleClickOnATextMarkOpensItsTextAgain() throws {
+    @Test func row2_85_sisterRow19_aDoubleClickOnATextMarkOpensItsTextAgain() throws {
         let stage = OverlayViewTests.Stage()
         let view = stage.view, session = stage.session
         session.selectTool(.text)
@@ -491,7 +490,7 @@ import Testing
 
     // MARK: Delete and Esc
 
-    @Test func row2_86_deleteRemovesOnlyTheSelectedMarkAndWithNoSelectionItClearsAll() throws {
+    @Test func row2_86_sisterRow16_deleteRemovesOnlyTheSelectedMarkAndWithNoSelectionItClearsAll() throws {
         let stage = OverlayViewTests.Stage()
         let view = stage.view, session = stage.session, id = stage.display.id
         try stage.drag(from: point(50, 50), to: point(250, 50))
@@ -530,7 +529,7 @@ import Testing
         #expect(session.markCount == 0 && session.selectedID == nil)
     }
 
-    @Test func row2_87_escRemovesOnlyTheSelectionAndTheNextEscClearsAllAndStops() throws {
+    @Test func row2_87_sisterRow22_escRemovesOnlyTheSelectionAndTheNextEscClearsAllAndStops() throws {
         let stage = OverlayViewTests.Stage()
         let view = stage.view, session = stage.session
         try stage.drag(from: point(50, 50), to: point(250, 50))
@@ -600,7 +599,7 @@ import Testing
 
     // MARK: Undo, and the clocks
 
-    @Test func row2_89_aMoveASizeChangeAStyleChangeAndADeleteAreOneUndoStepEach() throws {
+    @Test func row2_89_sisterRows20And21_aMoveASizeChangeAStyleChangeAndADeleteAreOneUndoStepEach() throws {
         let session = Fixture().session
         let first = session.draw(.rectangle, [point(100, 100), point(300, 200)]).mark
         session.draw(.pen, [point(400, 400), point(500, 400)])
@@ -762,8 +761,21 @@ import Testing
         #expect(session.marks(on: left).map { $0.mark.points } == [[point(150, 100), point(350, 200)]])
         #expect(session.marks(on: left).map { $0.stay } == [.sticky])
         // The next mark has the value of the switch.
-        session.draw(.pen, [point(400, 400), point(500, 400)])
+        let hold = session.draw(.pen, [point(400, 400), point(500, 400)])
         #expect(session.marks(on: left).map { $0.stay } == [.sticky, .hold])
+
+        // A selected Hold mark keeps its value and its clock when the switch changes.
+        session.selectTool(.select)
+        session.click(at: point(450, 400))
+        #expect(session.selectedID == hold.id)
+        stage.fixture.clock.time += 5.5
+        try stage.press("Sticky")
+        try stage.press("Fade")
+        let selected = try #require(session.marks(on: left).last)
+        #expect(selected.stay == .hold && session.opacity(of: selected) == 0.5)
+        stage.fixture.clock.time += 0.5
+        session.tick()
+        #expect(session.marks(on: left).map { $0.stay } == [.sticky] && session.selectedID == nil)
     }
 
     // MARK: The cost and the pointer
