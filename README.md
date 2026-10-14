@@ -24,16 +24,17 @@ The menu bar icon is a pencil in a circle. The circle is filled while the mode i
 
 | Key | What it does |
 | -- | -- |
-| Control-Option-D | Turns drawing on and off. A toolbar shows at the bottom centre of the screen that has the pointer. |
+| Control-Option-D | Turns drawing on and off. The toolbar shows at the place that you gave it. At the first start it is at the bottom centre of the screen that has the pointer. |
 | Control-Option-C | Changes between drawing and click-through. It does nothing while drawing is off. |
 | Esc | Cancels the text that is open. With no open text, it clears all the marks and stops drawing. |
 | Delete | Clears all the marks. Drawing stays on. Command-Z brings the marks back. |
 | Command-Z | Undo. |
 | Shift-Command-Z | Redo. |
+| Command-comma | Pauses the pen and opens Settings. It does the same as the gear of the toolbar. |
 
 - Control-Option-D and Control-Option-C work from each app. You can change the two (see "Settings").
-- Esc, Delete, Command-Z and Shift-Command-Z are fixed keys. They are not in Settings.
-- Esc, Delete, Command-Z and Shift-Command-Z work only in mode drawing. In click-through, each key goes to the app below.
+- Esc, Delete, Command-Z, Shift-Command-Z and Command-comma are fixed keys. They are not in Settings.
+- Esc, Delete, Command-Z, Shift-Command-Z and Command-comma work only in mode drawing. In click-through, each key goes to the app below.
 - While a text is open, Delete, Command-Z and Shift-Command-Z are for the typing.
 - Undo goes back 200 steps.
 
@@ -54,7 +55,7 @@ Each tool, size, colour and value of the switch has a key. The key does the same
 | Thick | 3 |  | Sticky | S |
 
 - P also selects the Pen, while no button has the key P.
-- Each button of the toolbar shows its key in its bottom right corner. Undo shows ⌘Z, Redo shows ⇧⌘Z, Clear all shows ⌫, and Close shows esc.
+- Each button of the toolbar shows its key in its bottom right corner. Undo shows ⌘Z, Redo shows ⇧⌘Z, Clear all shows ⌫, the gear shows ⌘, and Close shows esc.
 - You can change each of the 18 keys (see "Settings").
 - The toolbar keys work only in mode drawing. They are not global hotkeys. In click-through and while drawing is off, each key goes to the app that has the keyboard.
 - While a text is open, each key is for the typing.
@@ -66,17 +67,16 @@ Each tool, size, colour and value of the switch has a key. The key does the same
 
 ## The toolbar
 
-Row 1:
+The toolbar is one row. From its start:
 
+- The grip: six small dots. A drag of the grip moves the toolbar.
 - The tools: Pen, Highlight, Arrow, Rectangle, Ellipse, Text.
 - Undo, Redo, Clear all.
-- Close, at the right end. It does the same as Control-Option-D.
-
-Row 2:
-
 - Three sizes: Thin, Medium, Thick.
 - Six colours: red, amber, green, blue, black, white.
 - The switch Fade, Hold, Sticky.
+- The gear. It opens Settings (see "The gear").
+- Close, at the end. It does the same as Control-Option-D.
 
 Each button shows its key in its bottom right corner (see "The toolbar keys").
 
@@ -99,9 +99,35 @@ The switch sets how long a new mark stays. Each mark keeps the value that it was
 
 Other rules of the toolbar:
 
-- A drag that starts between the buttons moves the toolbar. At the next start of drawing it is at the bottom centre again.
 - In click-through the toolbar is dim and still takes clicks. A click on a tool goes back to drawing with that tool.
 - With two screens there is one toolbar. A mark stays on the screen where its drag started.
+
+### The forms and the place of the toolbar
+
+- A drag of the grip, or of a gap between two groups of buttons, moves the toolbar. The drag makes no mark.
+- Drop the toolbar near the left or the right edge of a screen. It becomes one column at that edge. "Near" is: the middle of the toolbar, or the pointer, is less than 120 points from the edge.
+- Drop the column away from the two edges. It is one row again.
+- The form changes when you release the mouse, not during the drag. After the release, the toolbar is fully in the visible part of the screen.
+- On a screen that is too narrow for the row, the toolbar has two rows. On a screen that is too low for the column, it has two columns.
+- In a column, each button keeps its key in its corner. Fade, Hold and Sticky keep their full names.
+- The app remembers the place and the form. The toolbar is there at the next start of drawing and at the next start of the app.
+- If that screen is gone, or the toolbar is not fully in its visible part, the toolbar is at the bottom centre of the screen that has the pointer, as one row. The first start is the same.
+- You can drag the toolbar to the other screen. The rules use the screen that has the pointer when you release the mouse.
+
+### The hover tip
+
+- Rest the pointer on a button for half a second. A small tip shows the name and the key of the button, for example "Arrow  A".
+- The tip goes away when the pointer leaves the button, and when you click.
+- A row has its tip above the button. A column has its tip at the side that has room.
+- The tip also shows while a different app is the active app.
+
+### The gear
+
+- The gear is immediately before Close. Its key is Command-comma.
+- In mode drawing, the gear first changes the mode to click-through: the marks stay, and the toolbar is dim. Then the settings window opens in front.
+- In click-through, the gear opens the settings window. The mode does not change.
+- A text that is open, or a drag in progress, is finished first.
+- After you close the settings window, the mode is still click-through. Press Control-Option-C or click a tool to draw again.
 
 ## What happens to the marks
 
@@ -117,7 +143,7 @@ Click the menu bar icon. In mode drawing the overlay is above the menu bar, so c
 - "Start drawing" or "Stop drawing", with its hotkey.
 - "Click through", with its hotkey. It is available while drawing is on. It has a check mark in click-through.
 - "Clear all". It also clears the Sticky marks that the app keeps while drawing is off.
-- "Settings…". It is not available in mode drawing.
+- "Settings…". It is not available in mode drawing. There, use the gear of the toolbar or Command-comma.
 - "Quit".
 
 ## Settings
