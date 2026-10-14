@@ -23,13 +23,13 @@ The version is in one place: `CFBundleShortVersionString` in `Support/Info.plist
 - `Sources/ScreendrawKit`: all the code of the app, as a library. Thus the tests can import it.
 - `Sources/YaseenScreendraw`: the executable. It makes one call: `AppController.main()`.
 - `Tests/ScreendrawKitTests`: the unit tests.
-- `DrawSession` holds the state of the drawing part, with no window and no view. The state is the mode, the marks, the tool, the Undo history and the clocks of Fade and Hold.
+- `DrawSession` holds the state of the drawing part, with no window and no view. The state is the mode, the marks, the tool, the Undo history and the clocks of Fade and Hold. It also tells if the marks are hidden.
 - The views and the windows are thin layers on top of `DrawSession`. They put a window on the screen only while the app runs (`NSApplication.shared.isRunning`). A test never runs the app, so a test shows no window.
 - The package uses the Swift 5 language mode. The compiler of CI can be older than the compiler on your Mac.
 
 ## Test
 
-`swift test` runs the full set. Version 0.2.1 has 262 tests.
+`swift test` runs the full set. Version 1.0.0 has 276 tests.
 
 - A test opens no window and uses no mouse and no keyboard.
 - A test never registers a real hotkey or a real login item. It uses a fake one.
@@ -46,7 +46,7 @@ swift test --filter PenTimingTests
 It prints one line, for example:
 
 ```
-Pen line of 5,000 points, best of 3: 62.1 ms in total, 12.4 µs for each point, 0.05 ms for the slowest point
+Pen line of 5,000 points, best of 3: 54.9 ms in total, 11.0 µs for each point, 0.03 ms for the slowest point
 ```
 
 - The time is the time of the code of this app on the main thread. That code is the session, the controller, the view with its layers, and the toolbar.
