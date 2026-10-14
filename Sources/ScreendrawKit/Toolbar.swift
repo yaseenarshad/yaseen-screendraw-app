@@ -1,18 +1,40 @@
 import AppKit
 
-/// The toolbar (D5, D6). Row 1: the six tools, Undo, Redo, Clear all, and Close at the right end.
-/// Row 2: the three sizes, the six colours, and the switch Fade, Hold, Sticky.
+/// The toolbar (D5, D6, D16). One row: the grip, the tools, Undo, Redo, Clear all, the sizes,
+/// the colours, the switch Fade, Hold, Sticky, the gear and Close. At the left or the right edge
+/// of a screen it is one column. `ToolbarLayout` gives the place of each button for each form.
 /// Each button shows its key in its bottom right corner (D11).
 ///
 /// A thin adapter: a click calls `DrawSession`, and `refresh()` shows the state that it reads there.
 final class Toolbar: NSView {
-    private static let buttonSide: CGFloat = 28
-    private static let padding: CGFloat = 4
-    private static let spacing: CGFloat = 2
-    private static let groupGap: CGFloat = 9
-    private static let rowHeight = buttonSide + 2 * padding
     /// The room between the toolbar and the bottom of the screen.
     private static let bottomMargin: CGFloat = 24
+    /// The pointer rests this long on a button before the tip shows (row 2.110).
+    static let tipDelay: TimeInterval = 0.5
+
+    /// The form of the toolbar. The controller sets it when the toolbar gets its place.
+    var form = ToolbarForm.row {
+        didSet {
+            if form != oldValue { layOut() }
+        }
+    }
+    /// Where the grip and the buttons are now.
+    private(set) var layout = ToolbarLayout(form: .row, groups: [])
+    /// The buttons in the order of the toolbar, group by group.
+    private var groups: [[ToolbarButton]] = []
+
+    /// The global place of the pointer. A test gives a fixed place.
+    var pointer: () -> CGPoint = { NSEvent.mouseLocation }
+    /// The user released the toolbar after a drag. The controller selects the form and the place.
+    var onDrop: () -> Void = {}
+    /// Shows the tip of a button, or no tip (`nil`). The tip is a window, so the controller shows it.
+    var onTip: (ToolbarButton?) -> Void = { _ in }
+    /// Exists only while the pointer rests on a button and the tip of that button does not show yet.
+    private(set) var tipTimer: Timer?
+    private weak var hovered: ToolbarButton?
+    /// The pointer at the mouse down, from the origin of the panel. `nil` when no drag is in progress.
+    private var grab: CGPoint?
+    private var didMove = false
 
     private let session: DrawSession
     private var toolButtons: [Tool: ToolbarButton] = [:]
@@ -22,7 +44,8 @@ final class Toolbar: NSView {
     private let undoButton: ToolbarButton
     private let redoButton: ToolbarButton
 
-    init(session: DrawSession) {
+    /// - Parameter tools: the tool buttons. A test gives a longer list, to see the layout with more tools.
+    init(session: DrawSession, tools: [Tool] = Tool.allCases) {
         self.session = session
         undoButton = ToolbarButton(name: "Undo", image: Toolbar.symbol("arrow.uturn.backward", name: "Undo")) {
             [session] in session.undo()
@@ -40,7 +63,7 @@ final class Toolbar: NSView {
         layer?.borderColor = CGColor(gray: 1, alpha: 0.18)
         layer?.borderWidth = 0.5
 
-        let tools = Tool.allCases.map { tool -> ToolbarButton in
+        let tools = tools.map { tool -> ToolbarButton in
             let button = ToolbarButton(name: tool.name, image: Toolbar.symbol(Toolbar.symbolName(for: tool), name: tool.name)) {
                 [session] in session.selectTool(tool)
             }
@@ -53,8 +76,13 @@ final class Toolbar: NSView {
         let close = ToolbarButton(name: "Close", image: Toolbar.symbol("xmark", name: "Close")) {
             [session] in session.stop()
         }
+        // The gear pauses the pen and opens the settings window (D13).
+        let settings = ToolbarButton(name: "Settings", image: Toolbar.symbol("gearshape", name: "Settings")) {
+            [session] in session.openSettings()
+        }
         clear.key = "⌫"
         close.key = "esc"
+        settings.key = "⌘,"
         let sizes = MarkSize.allCases.map { size -> ToolbarButton in
             let button = ToolbarButton(name: size.name, image: Toolbar.dot(for: size)) { [session] in session.setSize(size) }
             sizeButtons[size] = button
@@ -72,17 +100,15 @@ final class Toolbar: NSView {
             return button
         }
 
-        let firstRow = layOut([tools, [undoButton, redoButton, clear]], y: 0)
-        let secondRow = layOut([sizes, colors, stays], y: Toolbar.rowHeight)
-        // Close is at the right end. The free area before it is where a drag moves the toolbar.
-        let width = max(firstRow + Toolbar.groupGap + Toolbar.buttonSide, secondRow)
-        close.frame.origin = CGPoint(x: width - Toolbar.padding - Toolbar.buttonSide, y: Toolbar.padding)
-        addSubview(close)
-        setFrameSize(CGSize(width: width, height: 2 * Toolbar.rowHeight))
+        // The order of row 2.100. The gear is immediately before Close (row 2.40).
+        groups = [tools, [undoButton, redoButton, clear], sizes, colors, stays, [settings, close]]
+        groups.joined().forEach { addSubview($0) }
+        layOut()
 
+        // `activeAlways`: the app is usually not the active app, and the tip must still show (row 2.111).
         addTrackingArea(NSTrackingArea(
             rect: .zero,
-            options: [.cursorUpdate, .mouseMoved, .activeAlways, .inVisibleRect],
+            options: [.cursorUpdate, .mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
             owner: self
         ))
         refresh()
@@ -94,7 +120,7 @@ final class Toolbar: NSView {
         fatalError("init(coder:) is not used")
     }
 
-    // Row 1 is at the top, and row 2 is below it.
+    // The grip is at the top-left. A second row is below the first row.
     override var isFlipped: Bool { true }
 
     /// Shows the state of the session: the selected tool, size, colour and stay mode.
@@ -123,20 +149,37 @@ final class Toolbar: NSView {
         CGPoint(x: (visibleFrame.midX - size.width / 2).rounded(), y: visibleFrame.minY + bottomMargin)
     }
 
-    // MARK: The buttons
+    // MARK: The layout
 
-    /// Puts the groups of buttons in one row, from the left. Returns the width of the row.
-    private func layOut(_ groups: [[ToolbarButton]], y: CGFloat) -> CGFloat {
-        var x = Toolbar.padding
-        for (index, group) in groups.enumerated() {
-            if index > 0 { x += Toolbar.groupGap - Toolbar.spacing }
-            for button in group {
-                button.frame.origin = CGPoint(x: x, y: y + Toolbar.padding)
-                addSubview(button)
-                x += button.frame.width + Toolbar.spacing
+    /// The layout of this toolbar in a form. The controller reads the size before it selects the form.
+    func layout(in form: ToolbarForm) -> ToolbarLayout {
+        ToolbarLayout(form: form, groups: groups.map { $0.map { $0.frame.size } })
+    }
+
+    /// Puts each button at its place for the form, and gives the toolbar the size of the form.
+    private func layOut() {
+        layout = layout(in: form)
+        for (group, frames) in zip(groups, layout.frames) {
+            for (button, frame) in zip(group, frames) { button.frame = frame }
+        }
+        setFrameSize(layout.size)
+        needsDisplay = true
+    }
+
+    /// The grip: six small dots at the start of the toolbar. They tell where a drag moves the toolbar.
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor(white: 1, alpha: 0.5).setFill()
+        let columns = form.isVertical ? 3 : 2, rows = form.isVertical ? 2 : 3
+        let pitch: CGFloat = 4, dot: CGFloat = 2
+        let left = (layout.grip.midX - (CGFloat(columns - 1) * pitch + dot) / 2).rounded()
+        let top = (layout.grip.midY - (CGFloat(rows - 1) * pitch + dot) / 2).rounded()
+        for column in 0..<columns {
+            for row in 0..<rows {
+                NSBezierPath(ovalIn: CGRect(
+                    x: left + CGFloat(column) * pitch, y: top + CGFloat(row) * pitch, width: dot, height: dot
+                )).fill()
             }
         }
-        return x - Toolbar.spacing + Toolbar.padding
     }
 
     // MARK: The pictures of the buttons
@@ -203,10 +246,65 @@ final class Toolbar: NSView {
     // The toolbar never has the keyboard. Without this, AppKit can keep the click that starts a drag.
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
-    // A drag that starts between the buttons moves the toolbar. It makes no mark, because the
-    // toolbar is its own window.
+    // A drag that starts on the grip or between the buttons moves the toolbar (row 2.106). It
+    // makes no mark, because the toolbar is its own window. The view moves the panel itself, so
+    // it knows when the user releases the mouse: only then the form can change (row 2.105).
+
     override func mouseDown(with event: NSEvent) {
-        window?.performDrag(with: event)
+        guard let frame = window?.frame else { return }
+        hideTip()
+        let point = pointer()
+        grab = CGPoint(x: point.x - frame.minX, y: point.y - frame.minY)
+        didMove = false
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let grab = grab, let window = window else { return }
+        let point = pointer()
+        // Whole points, so the toolbar stays sharp on a screen of scale 1.
+        let origin = CGPoint(x: (point.x - grab.x).rounded(), y: (point.y - grab.y).rounded())
+        guard origin != window.frame.origin else { return }
+        window.setFrameOrigin(origin)
+        didMove = true
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard grab != nil else { return }
+        grab = nil
+        // A click with no move leaves the toolbar as it is.
+        if didMove { onDrop() }
+    }
+
+    // MARK: The hover tip
+
+    /// The pointer moved over the toolbar, or it left the toolbar (`nil`). The point counts from
+    /// the top-left of the toolbar. The tip of a button shows after the pointer rests on it.
+    func pointerMoved(to point: CGPoint?) {
+        let button = point.flatMap { point in groups.joined().first { $0.frame.contains(point) } }
+        guard button !== hovered else { return }
+        hovered = button
+        hideTip()
+        guard let button = button else { return }
+        let timer = Timer(timeInterval: Toolbar.tipDelay, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.tipTimer = nil
+                self?.onTip(button)
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        tipTimer = timer
+    }
+
+    /// A click, a drag, or the end of drawing: the tip goes away, and a tip that waits does not show.
+    /// The tip of the same button shows again only after the pointer left that button.
+    func hideTip() {
+        tipTimer?.invalidate()
+        tipTimer = nil
+        onTip(nil)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        pointerMoved(to: nil)
     }
 
     // The pointer over the toolbar is the arrow, not the crosshair of the overlay.
@@ -221,6 +319,7 @@ final class Toolbar: NSView {
 
     override func mouseMoved(with event: NSEvent) {
         NSCursor.arrow.set()
+        pointerMoved(to: convert(event.locationInWindow, from: nil))
     }
 }
 
@@ -282,7 +381,6 @@ final class ToolbarButton: NSButton {
         target = self
         action = #selector(clicked)
         setAccessibilityLabel(name)
-        toolTip = name
     }
 
     @available(*, unavailable)
@@ -291,6 +389,8 @@ final class ToolbarButton: NSButton {
     }
 
     @objc private func clicked() {
+        // A click removes the tip (row 2.110).
+        (superview as? Toolbar)?.hideTip()
         onClick()
     }
 
@@ -335,6 +435,11 @@ private final class ToolbarButtonCell: NSButtonCell {
 /// The panel of the toolbar: one for all screens, above the overlays. It never takes the
 /// keyboard: a borderless panel refuses it, and each button works with no keyboard.
 final class ToolbarPanel: NSPanel {
+    /// One level above the overlays. A click on an overlay brings that overlay to the front
+    /// of its level, and the toolbar must stay above it. It is still below the freeze of
+    /// Yaseen Screenshot.
+    static let toolbarLevel = NSWindow.Level(rawValue: OverlayWindow.overlayLevel.rawValue + 1)
+
     let toolbarView: Toolbar
 
     init(session: DrawSession) {
@@ -357,9 +462,12 @@ final class ToolbarPanel: NSPanel {
         // A screen capture and a screen share leave the toolbar out, when macOS obeys this.
         sharingType = .none
         contentView = toolbarView
-        // One level above the overlays. A click on an overlay brings that overlay to the front
-        // of its level, and the toolbar must stay above it. It is still below the freeze of
-        // Yaseen Screenshot.
-        level = NSWindow.Level(rawValue: OverlayWindow.overlayLevel.rawValue + 1)
+        level = ToolbarPanel.toolbarLevel
+    }
+
+    /// Gives the toolbar a form and a place. The panel has the size of the form.
+    func place(_ form: ToolbarForm, at origin: CGPoint) {
+        toolbarView.form = form
+        setFrame(CGRect(origin: origin, size: toolbarView.layout.size), display: true)
     }
 }

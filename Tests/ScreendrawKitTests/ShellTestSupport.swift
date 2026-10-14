@@ -52,6 +52,7 @@ final class FakeLoginItem: LoginItem {
 final class FakeDrawControl: DrawControlling {
     private(set) var mode: DrawMode = .off
     var onModeChange: (DrawMode) -> Void = { _ in }
+    var onOpenSettings: () -> Void = {}
     private(set) var calls: [String] = []
 
     func toggleDrawing() {

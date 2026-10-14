@@ -184,6 +184,24 @@ final class DrawSession {
         onChange?()
     }
 
+    // MARK: The gear (D13)
+
+    /// What opens the settings window. The shell sets it. The session does not know that window.
+    var onOpenSettings: () -> Void = {}
+
+    /// The gear button of the toolbar, and Command-comma. A text or a drag in progress is finished
+    /// first. Mode drawing changes to click-through, so the marks stay and the settings window
+    /// gets the mouse and the keyboard. Then the settings window opens (rows 2.41 to 2.44).
+    func openSettings() {
+        guard mode != .off else { return }
+        finishInProgress()
+        if mode == .drawing {
+            mode = .clickThrough
+            onChange?()
+        }
+        onOpenSettings()
+    }
+
     /// Esc. It arrives only in mode drawing, because only then the overlay has the keyboard.
     func escape() {
         guard mode == .drawing else { return }

@@ -80,6 +80,8 @@ public final class AppController: NSObject, NSApplicationDelegate {
         statusMenu.onToggleClickThrough = { [weak self] in self?.draw.toggleClickThrough() }
         statusMenu.onClearAll = { [weak self] in self?.draw.clearAll() }
         statusMenu.onOpenSettings = { [weak self] in self?.openSettings() }
+        // The gear of the toolbar opens the same window (D13).
+        draw.onOpenSettings = { [weak self] in self?.openSettings() }
         statusMenu.onQuit = { NSApp.terminate(nil) }
         for kind in HotKeyKind.allCases { statusMenu.showHotKey(settings.hotKey(kind), for: kind) }
         settings.onHotKeyChanged = { [weak self] kind, hotKey in self?.statusMenu.showHotKey(hotKey, for: kind) }
