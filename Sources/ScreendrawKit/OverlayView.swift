@@ -47,7 +47,8 @@ final class OverlayView: NSView, NSTextViewDelegate {
     private(set) var textView: NSTextView?
     private var textLayout: TextLayout?
     private var shownTextEdit: TextEdit?
-    private var cursor = NSCursor.crosshair
+    /// The pointer of this view now.
+    private(set) var cursor = NSCursor.crosshair
     private var shownPointerShape = PointerShape.crosshair
     /// The last place of the pointer on this view. With Select, the pointer shape depends on it.
     private var pointer = CGPoint.zero
@@ -80,6 +81,9 @@ final class OverlayView: NSView, NSTextViewDelegate {
         outlineLayer.strokeColor = .white
         dashLayer.strokeColor = OverlayView.selectionColor
         dashLayer.lineDashPattern = [4, 3]
+        // The outline starts on a half point. With this phase each dash starts on a whole point,
+        // so the dashes are sharp at scale 1 too.
+        dashLayer.lineDashPhase = 0.5
         handlesLayer.fillColor = .white
         handlesLayer.strokeColor = OverlayView.selectionColor
         for layer in [outlineLayer, dashLayer, handlesLayer] {
