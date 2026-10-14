@@ -27,4 +27,8 @@ protocol DrawControlling: AnyObject {
 
     /// The menu row "Clear all". One Undo brings the marks back.
     func clearAll()
+
+    /// The gear button of the toolbar, and Command-comma in mode drawing (D13). The drawing part
+    /// pauses the pen first, and then calls this. The shell sets it to what "Settings…" does.
+    var onOpenSettings: () -> Void { get set }
 }

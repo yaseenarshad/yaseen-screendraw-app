@@ -52,6 +52,7 @@ final class FakeLoginItem: LoginItem {
 final class FakeDrawControl: DrawControlling {
     private(set) var mode: DrawMode = .off
     var onModeChange: (DrawMode) -> Void = { _ in }
+    var onOpenSettings: () -> Void = {}
     private(set) var calls: [String] = []
 
     func toggleDrawing() {
@@ -61,8 +62,8 @@ final class FakeDrawControl: DrawControlling {
 
     func toggleClickThrough() {
         calls.append("toggleClickThrough")
-        guard mode != .off else { return }
-        set(mode == .drawing ? .clickThrough : .drawing)
+        // In mode off this shows the toolbar with the pen paused (row 4.26).
+        set(mode == .clickThrough ? .drawing : .clickThrough)
     }
 
     func clearAll() {

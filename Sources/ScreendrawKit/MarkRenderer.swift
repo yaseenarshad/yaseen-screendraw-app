@@ -30,6 +30,9 @@ enum MarkRenderer {
         let layer = CAShapeLayer()
         layer.actions = noActions
         show(mark, in: layer)
+        if mark.tool == .stamp {
+            layer.addSublayer(makeNumberLayer(for: mark))
+        }
         return layer
     }
 
@@ -37,13 +40,14 @@ enum MarkRenderer {
     /// A drag gives its own `line`, so each new point of a Pen line adds only one curve.
     static func show(_ mark: Mark, in layer: CAShapeLayer, line: SmoothLine = SmoothLine()) {
         let isHighlight = mark.tool == .highlight
+        let isFilled = mark.tool == .arrow || mark.tool == .stamp
         let color = MarkRenderer.color(mark.style.color, alpha: isHighlight ? highlightAlpha : 1)
         layer.path = path(for: mark, line: line)
-        layer.lineWidth = mark.style.lineWidth(for: mark.tool)
-        // The Arrow is a filled outline. Each other tool is a line with no fill.
-        layer.strokeColor = mark.tool == .arrow ? nil : color
-        layer.fillColor = mark.tool == .arrow ? color : nil
-        layer.lineCap = mark.tool == .pen ? .round : .butt
+        layer.lineWidth = mark.lineWidth
+        // The Arrow and the Stamp are filled shapes. Each other tool is a line with no fill.
+        layer.strokeColor = isFilled ? nil : color
+        layer.fillColor = isFilled ? color : nil
+        layer.lineCap = mark.tool == .pen || mark.tool == .line ? .round : .butt
         layer.lineJoin = mark.tool == .rectangle ? .miter : .round
     }
 
@@ -59,50 +63,86 @@ enum MarkRenderer {
             path.addLine(to: CGPoint(x: first.x + 0.01, y: first.y))
         case .pen, .highlight:
             return line.path(through: mark.points)
+        case .line where mark.points.count > 1:
+            path.move(to: first)
+            path.addLine(to: last)
         case .rectangle where mark.points.count > 1:
-            path.addRect(rect(between: first, and: last))
+            path.addRect(mark.frame)
         case .ellipse where mark.points.count > 1:
-            path.addEllipse(in: rect(between: first, and: last))
+            path.addEllipse(in: mark.frame)
         case .arrow:
-            addArrow(from: first, to: last, lineWidth: mark.style.lineWidth(for: .arrow), to: path)
+            addArrow(mark, from: first, to: path)
+        case .stamp:
+            path.addEllipse(in: mark.bounds)
         default:
             break
         }
         return path
     }
 
-    private static func rect(between a: CGPoint, and b: CGPoint) -> CGRect {
-        CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(a.x - b.x), height: abs(a.y - b.y))
+    /// The outline of an arrow: a line with a round start, and a head at the end of the drag.
+    /// It is one closed shape, so the layer fills it and draws no line.
+    private static func addArrow(_ mark: Mark, from start: CGPoint, to path: CGMutablePath) {
+        guard let head = mark.arrowHead else { return }
+        path.move(to: head.tip)
+        path.addLine(to: head.left)
+        if head.hasShaft {
+            // Along one side of the line, around the round start, and back along the other side.
+            let halfLine = min(mark.lineWidth / 2, head.halfWidth)
+            let angle = atan2(head.direction.y, head.direction.x)
+            path.addLine(to: head.beside(head.base, -halfLine))
+            path.addLine(to: head.beside(start, -halfLine))
+            path.addArc(center: start, radius: halfLine, startAngle: angle - .pi / 2, endAngle: angle - 3 * .pi / 2, clockwise: true)
+            path.addLine(to: head.beside(head.base, halfLine))
+        }
+        path.addLine(to: head.right)
+        path.closeSubpath()
     }
 
-    /// The outline of an arrow: a line with a round start, and a head at `end`. The head grows
-    /// with the line width. It is one closed shape, so the layer fills it and draws no line.
-    private static func addArrow(from start: CGPoint, to end: CGPoint, lineWidth: CGFloat, to path: CGMutablePath) {
-        let length = hypot(end.x - start.x, end.y - start.y)
-        guard length > 0 else { return }
-        let direction = CGPoint(x: (end.x - start.x) / length, y: (end.y - start.y) / length)
-        // A short arrow is only a head.
-        let headLength = min(lineWidth * 3 + 6, length)
-        let base = CGPoint(x: end.x - direction.x * headLength, y: end.y - direction.y * headLength)
-        /// The point that is `distance` to the side of `point`, across the arrow.
-        func beside(_ point: CGPoint, _ distance: CGFloat) -> CGPoint {
-            CGPoint(x: point.x - direction.y * distance, y: point.y + direction.x * distance)
-        }
-        let halfHead = headLength * 0.45
-        let halfLine = min(lineWidth / 2, halfHead)
+    // MARK: Stamp
 
-        path.move(to: end)
-        path.addLine(to: beside(base, -halfHead))
-        if length > headLength {
-            // Along one side of the line, around the round start, and back along the other side.
-            let angle = atan2(direction.y, direction.x)
-            path.addLine(to: beside(base, -halfLine))
-            path.addLine(to: beside(start, -halfLine))
-            path.addArc(center: start, radius: halfLine, startAngle: angle - .pi / 2, endAngle: angle - 3 * .pi / 2, clockwise: true)
-            path.addLine(to: beside(base, halfLine))
+    /// The colour of the number of a Stamp: white on a dark circle, black on a light circle, so
+    /// the number is easy to read on each of the six colours (row 2.57).
+    static func numberColor(on color: MarkColor) -> CGColor {
+        switch color {
+        case .red, .blue, .black: return CGColor(gray: 1, alpha: 1)
+        case .amber, .green, .white: return CGColor(gray: 0, alpha: 1)
         }
-        path.addLine(to: beside(base, halfHead))
-        path.closeSubpath()
+    }
+
+    /// The number of a Stamp, as the outlines of its digits in the middle of the circle. A path
+    /// is sharp at each scale, and a fade of the Stamp also fades it.
+    private static func makeNumberLayer(for mark: Mark) -> CAShapeLayer {
+        let layer = CAShapeLayer()
+        layer.actions = noActions
+        layer.fillColor = numberColor(on: mark.style.color)
+        guard let middle = mark.points.first else { return layer }
+
+        let diameter = mark.style.stampDiameter
+        let font = NSFont.systemFont(ofSize: diameter * 0.6, weight: .bold) as CTFont
+        let text = NSAttributedString(string: String(mark.number), attributes: [.font: font])
+        let digits = CGMutablePath()
+        for run in CTLineGetGlyphRuns(CTLineCreateWithAttributedString(text)) as? [CTRun] ?? [] {
+            let count = CTRunGetGlyphCount(run)
+            var glyphs = [CGGlyph](repeating: 0, count: count)
+            var places = [CGPoint](repeating: .zero, count: count)
+            CTRunGetGlyphs(run, CFRange(location: 0, length: count), &glyphs)
+            CTRunGetPositions(run, CFRange(location: 0, length: count), &places)
+            for (glyph, place) in zip(glyphs, places) {
+                guard let outline = CTFontCreatePathForGlyph(font, glyph, nil) else { continue }
+                digits.addPath(outline, transform: CGAffineTransform(translationX: place.x, y: place.y))
+            }
+        }
+        // A number with many digits gets smaller, so it stays in the circle.
+        let box = digits.boundingBoxOfPath
+        guard !box.isEmpty else { return layer }
+        let scale = min(1, diameter * 0.7 / box.width)
+        // The digits have y going up, and the layer of the marks has y going down.
+        var toMiddle = CGAffineTransform(translationX: middle.x, y: middle.y)
+            .scaledBy(x: scale, y: -scale)
+            .translatedBy(x: -box.midX, y: -box.midY)
+        layer.path = digits.copy(using: &toMiddle)
+        return layer
     }
 
     // MARK: Text

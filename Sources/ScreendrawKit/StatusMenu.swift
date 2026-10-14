@@ -56,8 +56,9 @@ final class StatusMenu: NSObject {
 
     func show(_ mode: DrawMode) {
         drawRow.title = (mode == .off) ? "Start drawing" : "Stop drawing"
-        // The click-through hotkey does nothing when the mode is off. The row tells the same (row 4.15).
-        clickThroughRow.isEnabled = (mode != .off)
+        // In mode off, the click-through hotkey shows the toolbar with the pen paused. The row tells
+        // the same with its name (D18, rows 4.20 and 4.26).
+        clickThroughRow.title = (mode == .off) ? "Show toolbar" : "Click through"
         // The row turns a mode on and off, so it shows that mode with a check mark.
         clickThroughRow.state = (mode == .clickThrough) ? .on : .off
         // The menu bar is below the overlay in mode drawing. A settings window would be below it too (row 5.11).

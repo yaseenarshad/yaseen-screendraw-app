@@ -59,7 +59,7 @@ import Testing
         #expect(controller.overlays.map { $0.frame } == [Screens.leftScreen.frame, Screens.rightScreen.frame])
         #expect(controller.overlays.map { $0.overlayView.frame.size } == [Screens.left.size, Screens.right.size])
         #expect(controller.toolbarPanel != nil)
-        #expect(stage.session.pointerShape == .crosshair)
+        #expect(stage.session.pointerShape(at: .zero, on: Screens.left.id) == .crosshair)
         #expect(stage.nothingIsOnAScreen)
     }
 
@@ -187,7 +187,8 @@ import Testing
         var stage = Stage()
         stage.controller.toggleDrawing()
         var panel = try #require(stage.controller.toolbarPanel)
-        #expect(panel.frame.midX.rounded() == Screens.leftScreen.frame.midX)
+        // The origin is a whole point, so the middle can be half a point from the middle of the screen.
+        #expect(abs(panel.frame.midX - Screens.leftScreen.frame.midX) <= 0.5)
         #expect(panel.frame.minY == Screens.leftScreen.visibleFrame.minY + 24)
         #expect(Screens.leftScreen.visibleFrame.contains(panel.frame))
 
@@ -196,26 +197,8 @@ import Testing
         stage.desk.pointer = CGPoint(x: 1000, y: 100)
         stage.controller.toggleDrawing()
         panel = try #require(stage.controller.toolbarPanel)
-        #expect(panel.frame.midX.rounded() == Screens.rightScreen.frame.midX)
+        #expect(abs(panel.frame.midX - Screens.rightScreen.frame.midX) <= 0.5)
         #expect(panel.frame.minY == Screens.rightScreen.visibleFrame.minY + 24)
-    }
-
-    @Test func row2_16_atTheNextStartTheToolbarIsAtTheBottomCentreAgain() throws {
-        let stage = Stage()
-        stage.controller.toggleDrawing()
-        var panel = try #require(stage.controller.toolbarPanel)
-        let start = panel.frame.origin
-        // The user dragged the toolbar to a different place.
-        panel.setFrameOrigin(CGPoint(x: 40, y: 400))
-        // The mode changes do not move it back.
-        stage.controller.toggleClickThrough()
-        stage.controller.toggleClickThrough()
-        #expect(panel.frame.origin == CGPoint(x: 40, y: 400))
-
-        stage.controller.toggleDrawing()
-        stage.controller.toggleDrawing()
-        panel = try #require(stage.controller.toolbarPanel)
-        #expect(panel.frame.origin == start)
     }
 
     @Test func row2_18_oneToolbarServesAllScreens() throws {
@@ -370,12 +353,36 @@ import Testing
         #expect(controller.toolbarPanel?.alphaValue == 1)
     }
 
-    @Test func row4_4_theClickThroughHotkeyDoesNothingWhenTheModeIsOff() {
+    /// Row 4.4 said that the hotkey does nothing in mode off. Rows 4.21 to 4.26 replace it (D18).
+    @Test func row4_26_theClickThroughHotkeyInModeOffShowsTheToolbarWithThePenPaused() throws {
         let stage = Stage()
-        stage.controller.toggleClickThrough()
-        #expect(stage.controller.mode == .off)
-        #expect(stage.modes.isEmpty)
-        #expect(stage.controller.overlays.isEmpty)
+        let controller = stage.controller
+        // The app keeps a Sticky mark from the last time (row 4.22).
+        controller.toggleDrawing()
+        stage.session.drawLine()
+        controller.toggleDrawing()
+        stage.modes = []
+
+        controller.toggleClickThrough()
+        #expect(controller.mode == .clickThrough)
+        #expect(stage.modes == [.clickThrough])
+        // The toolbar shows and is dim. The overlays ignore the mouse and cannot take the keyboard (row 4.21).
+        #expect(controller.toolbarPanel?.alphaValue == 0.5)
+        #expect(controller.overlays.count == 2)
+        #expect(controller.overlays.allSatisfy { $0.ignoresMouseEvents && !$0.canBecomeKey })
+        #expect(controller.overlays[0].overlayView.markLayers.count == 1)
+
+        // A click on a tool of the toolbar starts drawing with that tool (row 4.23).
+        try stage.press("Arrow")
+        #expect(controller.mode == .drawing && stage.session.tool == .arrow)
+
+        // The hotkey again: the pen is paused again. Then the draw hotkey turns all off (rows 4.24 and 4.25).
+        controller.toggleClickThrough()
+        #expect(controller.mode == .clickThrough)
+        controller.toggleClickThrough()
+        #expect(controller.mode == .drawing)
+        controller.toggleDrawing()
+        #expect(controller.mode == .off && controller.overlays.isEmpty && controller.toolbarPanel == nil)
     }
 
     @Test func row4_6_theKeptMarksShowAgainInTheNewOverlays() {

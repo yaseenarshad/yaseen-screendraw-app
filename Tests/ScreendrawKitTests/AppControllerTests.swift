@@ -31,8 +31,11 @@ import Testing
         return app
     }
 
+    /// The row "Click through" has the name "Show toolbar" while the mode is off (row 4.20).
     private func row(_ title: String, of app: AppController) throws -> NSMenuItem {
-        try #require(app.statusMenu.menu.item(withTitle: title))
+        let menu = app.statusMenu.menu
+        if title == "Click through", let row = menu.item(withTitle: "Show toolbar") { return row }
+        return try #require(menu.item(withTitle: title))
     }
 
     @Test func row1_2_aSecondCopyQuits() {
@@ -48,7 +51,7 @@ import Testing
     @Test func row1_13_theMenuHasTheRowsWithTheTwoHotKeys() throws {
         let app = startApp()
         let titles = app.statusMenu.menu.items.map { $0.isSeparatorItem ? "-" : $0.title }
-        #expect(titles == ["Start drawing", "Click through", "Clear all", "-", "Settings…", "-", "Quit"])
+        #expect(titles == ["Start drawing", "Show toolbar", "Clear all", "-", "Settings…", "-", "Quit"])
 
         let drawRow = try row("Start drawing", of: app)
         #expect(drawRow.keyEquivalent == "d")
@@ -122,20 +125,21 @@ import Testing
         #expect(draw.mode == .off)
     }
 
-    /// The hotkey side of rows 4.1, 4.3 and 4.4: the click-through hotkey asks the drawing part.
+    /// The hotkey side of rows 4.1, 4.3 and 4.26: the click-through hotkey asks the drawing part.
     @Test func theClickThroughHotKeyTogglesClickThrough() {
         startApp()
-        // Mode off: the shell still tells the drawing part, and the drawing part does nothing (row 4.4).
+        // Mode off: the hotkey shows the toolbar with the pen paused (row 4.26).
         hotKeys.press(controlOptionC)
         #expect(draw.calls == ["toggleClickThrough"])
-        #expect(draw.mode == .off)
-
-        hotKeys.press(controlOptionD)
-        hotKeys.press(controlOptionC)
         #expect(draw.mode == .clickThrough)
+
         hotKeys.press(controlOptionC)
         #expect(draw.mode == .drawing)
-        #expect(draw.calls == ["toggleClickThrough", "toggleDrawing", "toggleClickThrough", "toggleClickThrough"])
+        hotKeys.press(controlOptionC)
+        #expect(draw.mode == .clickThrough)
+        hotKeys.press(controlOptionD)
+        #expect(draw.mode == .off)
+        #expect(draw.calls == ["toggleClickThrough", "toggleClickThrough", "toggleClickThrough", "toggleDrawing"])
     }
 
     /// Row 1.13: the menu rows do the same as the hotkeys, and "Clear all" clears.
@@ -160,24 +164,29 @@ import Testing
         #expect(draw.calls.last == "clearAll")
     }
 
-    @Test func row4_15_clickThroughIsAvailableOnlyWhenTheModeIsNotOff() throws {
+    @Test func row4_20_theClickThroughRowIsShowToolbarInModeOff() throws {
         let app = startApp()
         let clickThroughRow = try row("Click through", of: app)
-        #expect(clickThroughRow.isEnabled == false)
-        // A click on the row does nothing in mode off.
+        // Mode off: the row has the name "Show toolbar", and it is available (rows 4.20 and 4.26).
+        #expect(clickThroughRow.title == "Show toolbar" && clickThroughRow.isEnabled)
+        #expect(clickThroughRow.state == .off)
+
+        // A click shows the toolbar with the pen paused: the mode is click-through (row 4.21).
         click(clickThroughRow)
-        #expect(draw.calls.isEmpty)
+        #expect(draw.calls == ["toggleClickThrough"])
+        #expect(draw.mode == .clickThrough)
+        #expect(clickThroughRow.title == "Click through" && clickThroughRow.state == .on)
+
+        // The row then changes between click-through and drawing (rows 4.24 and 4.3).
+        click(clickThroughRow)
+        #expect(draw.mode == .drawing)
+        #expect(clickThroughRow.title == "Click through" && clickThroughRow.state == .off)
 
         draw.toggleDrawing()
-        #expect(clickThroughRow.isEnabled == true)
-        draw.toggleClickThrough()
-        #expect(clickThroughRow.isEnabled == true)
-        draw.toggleDrawing()
-        #expect(clickThroughRow.isEnabled == false)
+        #expect(clickThroughRow.title == "Show toolbar" && clickThroughRow.isEnabled)
         // The other rows that change the marks stay available.
         #expect(try row("Start drawing", of: app).isEnabled)
         #expect(try row("Clear all", of: app).isEnabled)
-        #expect(try row("Quit", of: app).isEnabled)
     }
 
     @Test func theClickThroughRowHasACheckMarkOnlyInModeClickThrough() throws {
@@ -225,11 +234,11 @@ import Testing
             [
                 drawRow.title,
                 app.statusMenu.symbolName,
-                clickThroughRow.isEnabled ? (clickThroughRow.state == .on ? "click-through on" : "click-through off") : "no click-through",
+                clickThroughRow.title == "Show toolbar" ? "show toolbar" : (clickThroughRow.state == .on ? "click-through on" : "click-through off"),
                 settingsRow.isEnabled ? "settings" : "no settings",
             ]
         }
-        let off = ["Start drawing", "pencil.tip.crop.circle", "no click-through", "settings"]
+        let off = ["Start drawing", "pencil.tip.crop.circle", "show toolbar", "settings"]
         let drawing = ["Stop drawing", "pencil.tip.crop.circle.fill", "click-through off", "no settings"]
         let clickThrough = ["Stop drawing", "pencil.tip.crop.circle.fill", "click-through on", "settings"]
         #expect(menu() == off)
