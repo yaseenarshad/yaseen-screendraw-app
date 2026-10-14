@@ -22,15 +22,17 @@ import Testing
 
     // MARK: The tool
 
-    @Test func row2_80_sisterRow1_selectIsTheFirstToolButtonWithAnArrowPointerAndTheKeyV() throws {
+    @Test func row2_80_sisterRow1_selectIsTheFirstToolButtonWithTheFourArrowsAndTheKeyV() throws {
         let stage = ToolbarTests.Stage()
         #expect(Tool.allCases.first == .select && Tool.select.name == "Select")
         let select = try stage.button("Select")
-        // It is the first button of the toolbar: no button is before it, to its left or above it.
+        // It is the first tool button: only "Click through" is before it, to its left or above it (row 4.30).
         let buttons = stage.toolbar.subviews.compactMap { $0 as? ToolbarButton }
-        #expect(buttons.allSatisfy { $0.frame.minX >= select.frame.minX && $0.frame.minY >= select.frame.minY })
-        // Its picture is the arrow pointer of the system, and its name shows on hover (sister row 1).
-        #expect(NSImage(systemSymbolName: "cursorarrow", accessibilityDescription: nil) != nil)
+        #expect(buttons.prefix(2).map { $0.name } == ["Click through", "Select"])
+        #expect(buttons.dropFirst().allSatisfy { $0.frame.minX >= select.frame.minX && $0.frame.minY >= select.frame.minY })
+        // Its picture is the four arrows of the system, for "move" (row 4.33). Its name shows on hover (sister row 1).
+        #expect(Toolbar.symbolName(for: .select) == "arrow.up.and.down.and.arrow.left.and.right")
+        #expect(NSImage(systemSymbolName: Toolbar.symbolName(for: .select), accessibilityDescription: nil) != nil)
         #expect(select.image?.accessibilityDescription == "Select")
         #expect(select.name == "Select" && select.accessibilityLabel() == "Select")
 
@@ -529,7 +531,7 @@ import Testing
         #expect(session.markCount == 0 && session.selectedID == nil)
     }
 
-    @Test func row2_87_sisterRow22_escRemovesOnlyTheSelectionAndTheNextEscClearsAllAndStops() throws {
+    @Test func row2_87_sisterRow22_escRemovesOnlyTheSelectionAndTheNextEscPausesThePen() throws {
         let stage = OverlayViewTests.Stage()
         let view = stage.view, session = stage.session
         try stage.drag(from: point(50, 50), to: point(250, 50))
@@ -543,9 +545,9 @@ import Testing
         view.keyDown(with: try stage.key(53))
         #expect(session.selectedID == nil && session.mode == .drawing)
         #expect(session.markCount == 2 && session.marksRevision == revision && session.tool == .select)
-        // The next Esc clears all and stops (row 4.8).
+        // The next Esc pauses the pen, and no mark goes away (rows 4.34 and 4.35).
         view.keyDown(with: try stage.key(53))
-        #expect(session.mode == .off && session.markCount == 0)
+        #expect(session.mode == .clickThrough && session.markCount == 2)
     }
 
     @Test func row2_88_aDifferentToolClickThroughAndModeOffRemoveTheSelection() throws {

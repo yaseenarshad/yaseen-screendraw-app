@@ -2,8 +2,9 @@ import CoreGraphics
 @testable import ScreendrawKit
 import Testing
 
-/// Click-through, Esc, and the marks that come back: the rows of YAZ-2792 (4.x), in the state
+/// Click-through and the marks that come back: the rows of YAZ-2792 (4.x), in the state
 /// machine with no window. `DrawControllerTests` has the window side of the same rows.
+/// Esc pauses the pen now (D20): `EscPausesTests` has rows 4.30 to 4.45, which replace rows 4.8 to 4.10.
 @Suite struct ModeTests {
     @Test func row4_1_theClickThroughHotkeyKeepsTheMarksAndThePointerDrawsNothing() {
         let session = Fixture().session
@@ -135,66 +136,6 @@ import Testing
         #expect(session.textEdit == nil)
         #expect(session.mode == .drawing)
         #expect(session.allMarks.map { $0.mark.tool } == [.pen])
-    }
-
-    @Test func row4_8_escClearsEachMarkAndTurnsDrawingOff() {
-        let session = Fixture().session
-        session.drawLine(on: Screens.left.id)
-        session.setStay(.hold)
-        session.drawLine(on: Screens.right.id)
-        var modes: [DrawMode] = []
-        session.onChange = { [unowned session] in modes.append(session.mode) }
-
-        session.escape()
-        #expect(session.mode == .off)
-        #expect(session.markCount == 0)
-        #expect(!session.hasTimedMarks)
-        // The marks go first, and then the mode changes.
-        #expect(modes == [.drawing, .off])
-    }
-
-    @Test func row4_8_escWithNoMarkTurnsDrawingOff() {
-        let session = Fixture().session
-        session.escape()
-        #expect(session.mode == .off)
-        #expect(!session.canUndo)
-    }
-
-    @Test func row4_9_escInClickThroughDoesNothing() {
-        let session = Fixture().session
-        session.drawLine()
-        session.toggleClickThrough()
-        var changes = 0
-        session.onChange = { changes += 1 }
-        // The overlay has no keyboard in this mode, so Esc goes to the app below. If one arrives
-        // here, the session ignores it.
-        session.escape()
-        #expect(session.mode == .clickThrough)
-        #expect(session.markCount == 1)
-        #expect(changes == 0)
-    }
-
-    @Test func row4_10_escThenTheDrawHotkeyThenUndoBringsTheClearedMarksBack() {
-        let session = Fixture().session
-        session.drawLine(row: 0, on: Screens.left.id)
-        session.drawLine(row: 1, on: Screens.left.id)
-        session.drawLine(row: 2, on: Screens.right.id)
-        let left = session.marks(on: Screens.left.id).map { $0.mark }
-        let right = session.marks(on: Screens.right.id).map { $0.mark }
-
-        session.escape()
-        // The history stays while drawing is off.
-        #expect(session.canUndo)
-        session.start(displays: [Screens.left, Screens.right])
-        #expect(session.markCount == 0)
-
-        // The clear of Esc is one step: one Undo brings back all three marks.
-        session.undo()
-        #expect(session.marks(on: Screens.left.id).map { $0.mark } == left)
-        #expect(session.marks(on: Screens.right.id).map { $0.mark } == right)
-        // The next Undo takes back the newest of the three marks.
-        session.undo()
-        #expect(session.marks(on: Screens.right.id).isEmpty && session.marks(on: Screens.left.id).count == 2)
     }
 
     @Test func row4_11_aHotkeyDuringADragFinishesTheMarkFirst() {

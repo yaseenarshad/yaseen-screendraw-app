@@ -357,7 +357,8 @@ import Testing
     @Test func row4_26_theClickThroughHotkeyInModeOffShowsTheToolbarWithThePenPaused() throws {
         let stage = Stage()
         let controller = stage.controller
-        // The app keeps a Sticky mark from the last time (row 4.22).
+        // The app keeps a Sticky mark from the last time. It stays hidden until the mode is
+        // drawing (row 4.39, which replaces row 4.22).
         controller.toggleDrawing()
         stage.session.drawLine()
         controller.toggleDrawing()
@@ -366,15 +367,14 @@ import Testing
         controller.toggleClickThrough()
         #expect(controller.mode == .clickThrough)
         #expect(stage.modes == [.clickThrough])
-        // The toolbar shows and is dim. The overlays ignore the mouse and cannot take the keyboard (row 4.21).
+        // The toolbar shows and is dim. No overlay exists, so the clicks and the keys go to the apps (row 4.21).
         #expect(controller.toolbarPanel?.alphaValue == 0.5)
-        #expect(controller.overlays.count == 2)
-        #expect(controller.overlays.allSatisfy { $0.ignoresMouseEvents && !$0.canBecomeKey })
-        #expect(controller.overlays[0].overlayView.markLayers.count == 1)
+        #expect(controller.overlays.isEmpty && stage.session.markCount == 1)
 
-        // A click on a tool of the toolbar starts drawing with that tool (row 4.23).
+        // A click on a tool of the toolbar starts drawing with that tool (row 4.23). The kept mark shows again.
         try stage.press("Arrow")
         #expect(controller.mode == .drawing && stage.session.tool == .arrow)
+        #expect(controller.overlays.map { $0.overlayView.markLayers.count } == [1, 0])
 
         // The hotkey again: the pen is paused again. Then the draw hotkey turns all off (rows 4.24 and 4.25).
         controller.toggleClickThrough()
@@ -412,7 +412,7 @@ import Testing
         #expect(zip(controller.overlays, overlays).allSatisfy { $0 === $1 })
     }
 
-    @Test func row4_14_withTheModeOffNoWindowNoTimerAndNoObserverExists() {
+    @Test func row4_14_withTheModeOffNoWindowNoTimerAndNoObserverExists() throws {
         let stage = Stage()
         let controller = stage.controller
         // Before the first use.
@@ -427,18 +427,15 @@ import Testing
         let timer = controller.timer
         #expect(windows.count == 3 && timer != nil && controller.screenObserver != nil && controller.keysObserver != nil)
 
-        // Esc turns drawing off in the same way as the draw hotkey.
-        stage.session.escape()
+        // The Close button turns drawing off in the same way as the draw hotkey.
+        try stage.press("Close")
         #expect(controller.mode == .off)
         #expect(controller.overlays.isEmpty && controller.toolbarPanel == nil)
         #expect(controller.timer == nil && timer?.isValid == false)
         #expect(controller.screenObserver == nil && controller.keysObserver == nil)
         #expect(windows.allSatisfy { !$0.isVisible })
 
-        // The kept marks are data only: a tick and a change of the screens do nothing.
-        controller.toggleDrawing()
-        stage.session.undo()
-        controller.toggleDrawing()
+        // The kept Sticky mark is data only: a tick and a change of the screens do nothing.
         #expect(stage.session.markCount == 1)
         stage.clock.time += 3600
         controller.tick()

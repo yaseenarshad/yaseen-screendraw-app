@@ -112,12 +112,12 @@ extension DrawControllerTests.Stage {
 @MainActor @Suite struct ToolbarFormTests {
     typealias Stage = DrawControllerTests.Stage
 
-    /// The sizes of the buttons of a toolbar with `tools` tool buttons, group by group: the
-    /// tools, Undo Redo Clear all, three sizes, six colours, Fade Hold Sticky, the gear and Close.
+    /// The sizes of the buttons of a toolbar with `tools` tool buttons, group by group: "Click
+    /// through", the tools, Undo Redo Clear all, three sizes, six colours, Fade Hold Sticky, the gear and Close.
     static func groups(tools: Int) -> [[CGSize]] {
         func buttons(_ count: Int) -> [CGSize] { Array(repeating: CGSize(width: 28, height: 28), count: count) }
         let names = [40, 40, 48].map { CGSize(width: $0, height: 28) }
-        return [buttons(tools), buttons(3), buttons(3), buttons(6), names, buttons(2)]
+        return [buttons(1), buttons(tools), buttons(3), buttons(3), buttons(6), names, buttons(2)]
     }
 
     /// Nine tool buttons for a toolbar view, with no change of `Tool`: the tools of the app, and
@@ -143,9 +143,9 @@ extension DrawControllerTests.Stage {
         }
     }
 
-    /// The names of the buttons in the order of row 2.100, for the tools that the app has.
+    /// The names of the buttons in the order of rows 2.100 and 4.30, for the tools that the app has.
     static var approvedOrder: [String] {
-        Tool.allCases.map { $0.name } + ["Undo", "Redo", "Clear all"]
+        ["Click through"] + Tool.allCases.map { $0.name } + ["Undo", "Redo", "Clear all"]
             + MarkSize.allCases.map { $0.name } + MarkColor.allCases.map { $0.name } + StayMode.allCases.map { $0.name }
             + ["Settings", "Close"]
     }
@@ -175,7 +175,7 @@ extension DrawControllerTests.Stage {
 
         // The gap between two groups is wider than the room between two buttons of a group.
         let frames = toolbar.layout.frames
-        #expect(frames.count == 6)
+        #expect(frames.count == 7)
         for (group, next) in zip(frames, frames.dropFirst()) {
             #expect(try #require(next.first).minX - #require(group.last).maxX == 9)
             #expect(zip(group, group.dropFirst()).allSatisfy { $1.minX - $0.maxX == 2 })
@@ -183,7 +183,7 @@ extension DrawControllerTests.Stage {
     }
 
     @Test func row2_100_theSizeOfTheRowWithSixAndWithNineTools() {
-        for (tools, width) in [(6, 794), (9, 884)] {
+        for (tools, width) in [(6, 831), (9, 921)] {
             let groups = ToolbarFormTests.groups(tools: tools)
             let row = ToolbarLayout(form: .row, groups: groups)
             #expect(row.size == CGSize(width: width, height: 36))
@@ -192,23 +192,23 @@ extension DrawControllerTests.Stage {
             #expect(row.frames[0][0].origin == CGPoint(x: 23, y: 4))
         }
         // The toolbar of the app: the padding, the grip, each button, 2 points between two buttons
-        // of a group, and 9 points before each of the six groups. The names of the switch have
+        // of a group, and 9 points before each of the seven groups. The names of the switch have
         // the width that the font of this Mac gives them.
         let toolbar = Toolbar(session: Fixture().session)
         let widths = toolbar.subviews.compactMap { $0 as? ToolbarButton }.map { $0.frame.width }
         #expect(widths.filter { $0 == 28 }.count == widths.count - 3)
-        let betweenButtons = 2 * CGFloat(widths.count - 6)
-        let width: CGFloat = 4 + 10 + 6 * 9 + widths.reduce(0, +) + betweenButtons + 4
+        let betweenButtons = 2 * CGFloat(widths.count - 7)
+        let width: CGFloat = 4 + 10 + 7 * 9 + widths.reduce(0, +) + betweenButtons + 4
         #expect(toolbar.frame.size == CGSize(width: width, height: 36))
     }
 
     /// YAZ-2830, completion: the layout takes its buttons from lists, and a new tool needs no change.
     @Test func theLayoutWorksWithNineToolsAndWithAnyNumberOfTools() {
         let sizes: [(ToolbarForm, CGSize, CGSize)] = [
-            (.row, CGSize(width: 794, height: 36), CGSize(width: 884, height: 36)),
-            (.twoRows, CGSize(width: 413, height: 72), CGSize(width: 489, height: 72)),
-            (.column, CGSize(width: 56, height: 750), CGSize(width: 56, height: 840)),
-            (.twoColumns, CGSize(width: 92, height: 399), CGSize(width: 92, height: 466)),
+            (.row, CGSize(width: 831, height: 36), CGSize(width: 921, height: 36)),
+            (.twoRows, CGSize(width: 436, height: 72), CGSize(width: 510, height: 72)),
+            (.column, CGSize(width: 56, height: 787), CGSize(width: 56, height: 877)),
+            (.twoColumns, CGSize(width: 92, height: 436), CGSize(width: 92, height: 466)),
         ]
         for (form, six, nine) in sizes {
             #expect(ToolbarFormTests.size(tools: 6)(form) == six, "\(form) with six tools")
@@ -242,7 +242,7 @@ extension DrawControllerTests.Stage {
         for form in ToolbarForm.allCases {
             toolbar.form = form
             let buttons = toolbar.subviews.compactMap { $0 as? ToolbarButton }
-            #expect(buttons.count == 26)
+            #expect(buttons.count == 27)
             #expect(toolbar.frame.size == toolbar.layout.size)
             #expect(buttons.map { $0.frame } == toolbar.layout.frames.flatMap { $0 })
             for button in buttons {
@@ -252,19 +252,19 @@ extension DrawControllerTests.Stage {
     }
 
     @Test func row2_101_aRowThatIsWiderThanTheVisiblePartIsTwoRows() throws {
-        // The pure rule: the row of 794 points fits in 794 points, and not in 793 points.
+        // The pure rule: the row of 831 points fits in 831 points, and not in 830 points.
         let size = ToolbarFormTests.size(tools: 6)
-        #expect(ToolbarForm.fitting(vertical: false, in: CGRect(x: 0, y: 0, width: 794, height: 600), size: size) == .row)
-        #expect(ToolbarForm.fitting(vertical: false, in: CGRect(x: 0, y: 0, width: 793, height: 600), size: size) == .twoRows)
+        #expect(ToolbarForm.fitting(vertical: false, in: CGRect(x: 0, y: 0, width: 831, height: 600), size: size) == .row)
+        #expect(ToolbarForm.fitting(vertical: false, in: CGRect(x: 0, y: 0, width: 830, height: 600), size: size) == .twoRows)
 
         // Two rows: the groups keep their order, and the grip is as high as the two rows.
         let groups = ToolbarFormTests.groups(tools: 6)
         let layout = ToolbarLayout(form: .twoRows, groups: groups)
         ToolbarFormTests.expectClean(layout, groups, "two rows")
-        #expect(layout.frames.map { $0[0].minY } == [4, 4, 4, 40, 40, 40])
+        #expect(layout.frames.map { $0[0].minY } == [4, 4, 4, 4, 40, 40, 40])
         #expect(layout.grip == CGRect(x: 4, y: 4, width: 10, height: 64))
-        // The two rows are about as long: 372 and 386 points.
-        #expect(layout.frames[2].last?.maxX == 23 + 372 && layout.frames[5].last?.maxX == 23 + 386)
+        // The two rows are about as long: 409 and 386 points.
+        #expect(layout.frames[3].last?.maxX == 23 + 409 && layout.frames[6].last?.maxX == 23 + 386)
 
         // On a screen of 700 points, drawing starts with two rows at the bottom centre.
         let stage = Stage(screens: [Desks.narrow])
@@ -285,7 +285,7 @@ extension DrawControllerTests.Stage {
         /// The drop of a row with its middle at `x`. The pointer is at the middle of the row.
         func drop(middle x: CGFloat) -> (form: ToolbarForm, frame: CGRect) {
             ToolbarLayout.drop(
-                CGRect(x: x - 397, y: 500, width: 794, height: 36), pointer: CGPoint(x: x, y: 518), on: visible, size: size
+                CGRect(x: x - 415.5, y: 500, width: 831, height: 36), pointer: CGPoint(x: x, y: 518), on: visible, size: size
             )
         }
         // "Near" is less than 120 points from the edge.
@@ -295,13 +295,13 @@ extension DrawControllerTests.Stage {
         // Past the edge is near too.
         #expect(drop(middle: -300).form == .column && drop(middle: 2100).form == .column)
         // The column is at that edge, 8 points from it, and it is fully in the visible part.
-        #expect(drop(middle: 119).frame == CGRect(x: 8, y: 70, width: 56, height: 750))
+        #expect(drop(middle: 119).frame == CGRect(x: 8, y: 70, width: 56, height: 787))
         #expect(drop(middle: 100).frame.minX == 8 && drop(middle: 1900).frame.maxX == 1920 - 8)
         #expect(visible.contains(drop(middle: 100).frame) && visible.contains(drop(middle: 1900).frame))
 
         // The grip is at the start of the row. A drag of the grip to the edge makes a column
         // too: the pointer is near the edge, and the middle of the row is not.
-        let atTheLeft = CGRect(x: 0, y: 500, width: 794, height: 36)
+        let atTheLeft = CGRect(x: 0, y: 500, width: 831, height: 36)
         #expect(ToolbarLayout.drop(atTheLeft, pointer: CGPoint(x: 9, y: 518), on: visible, size: size).form == .column)
         #expect(ToolbarLayout.drop(atTheLeft, pointer: CGPoint(x: 119, y: 518), on: visible, size: size).form == .column)
         #expect(ToolbarLayout.drop(atTheLeft, pointer: CGPoint(x: 120, y: 518), on: visible, size: size).form == .row)
@@ -328,16 +328,17 @@ extension DrawControllerTests.Stage {
     }
 
     @Test func row2_103_aColumnThatIsHigherThanTheVisiblePartIsTwoColumns() throws {
-        // The pure rule: the column of 750 points fits in 750 points, and not in 749 points.
+        // The pure rule: the column of 787 points fits in 787 points, and not in 786 points.
         let size = ToolbarFormTests.size(tools: 6)
-        #expect(ToolbarForm.fitting(vertical: true, in: CGRect(x: 0, y: 0, width: 900, height: 750), size: size) == .column)
-        #expect(ToolbarForm.fitting(vertical: true, in: CGRect(x: 0, y: 0, width: 900, height: 749), size: size) == .twoColumns)
+        #expect(ToolbarForm.fitting(vertical: true, in: CGRect(x: 0, y: 0, width: 900, height: 787), size: size) == .column)
+        #expect(ToolbarForm.fitting(vertical: true, in: CGRect(x: 0, y: 0, width: 900, height: 786), size: size) == .twoColumns)
 
         let groups = ToolbarFormTests.groups(tools: 6)
         let layout = ToolbarLayout(form: .twoColumns, groups: groups)
         ToolbarFormTests.expectClean(layout, groups, "two columns")
-        // The first column has the tools, Undo Redo Clear all and the sizes. The grip is above the two columns.
-        #expect(layout.frames.map { $0[0].minX } == [4, 4, 4, 50, 44, 50])
+        // The first column has "Click through", the tools, Undo Redo Clear all and the sizes. The
+        // grip is above the two columns.
+        #expect(layout.frames.map { $0[0].minX } == [4, 4, 4, 4, 50, 44, 50])
         #expect(layout.grip == CGRect(x: 4, y: 4, width: 84, height: 10))
 
         // The small screen: its visible part is 705 points high. A drop at the edge makes two columns.
@@ -450,7 +451,7 @@ extension DrawControllerTests.Stage {
         // The grip and each gap between two groups belong to the toolbar. A button takes its own click.
         // The row is the same above and below its middle, so the point needs no change for the test.
         #expect(toolbar.hitTest(try stage.grip) === toolbar)
-        for group in 0..<5 {
+        for group in 0..<6 {
             #expect(toolbar.hitTest(try stage.gap(after: group)) === toolbar, "the gap after group \(group)")
         }
         let pen = try toolbar.button(named: "Pen")
@@ -638,7 +639,7 @@ extension DrawControllerTests.Stage {
         try stage.drag(from: stage.gap(after: 2), to: CGPoint(x: 4450, y: 700))
         #expect(try stage.toolbar.form == .column && panel.frame.maxX == 4480 - 8)
         #expect(Desks.side.visibleFrame.contains(panel.frame))
-        // The column of 750 points fits on the second screen. It keeps the height of the drop.
+        // The column fits on the second screen. It keeps the height of the drop.
         #expect(try panel.frame.height == stage.toolbar.layout.size.height)
 
         // The pointer is on the first screen, near its right edge: a column at the right edge of the first screen.
@@ -715,13 +716,16 @@ extension DrawControllerTests.Stage {
         try stage.release()
 
         // Each button has a tip: the fixed keys, the gear, and a key that the settings changed.
+        // Close has no key, so its tip is its name only (row 4.40).
         var tips: [String] = []
-        for name in ["Undo", "Redo", "Clear all", "Thick", "Red", "Sticky", "Settings", "Close"] {
+        for name in ["Click through", "Undo", "Redo", "Clear all", "Thick", "Red", "Sticky", "Settings", "Close"] {
             toolbar.pointerMoved(to: nil)
             try stage.rest(on: name)
             tips.append(try #require(stage.tip))
         }
-        #expect(tips == ["Undo  ⌘Z", "Redo  ⇧⌘Z", "Clear all  ⌫", "Thick  3", "Red  4", "Sticky  S", "Settings  ⌘,", "Close  esc"])
+        #expect(tips == [
+            "Click through  esc", "Undo  ⌘Z", "Redo  ⇧⌘Z", "Clear all  ⌫", "Thick  3", "Red  4", "Sticky  S", "Settings  ⌘,", "Close",
+        ])
         stage.session.toolbarKeys.set("q", for: .tool(.arrow))
         toolbar.pointerMoved(to: nil)
         try stage.rest(on: "Arrow")
@@ -752,8 +756,8 @@ extension DrawControllerTests.Stage {
         // The tip in click-through, where the toolbar is dim: it still shows.
         stage.controller.toggleClickThrough()
         toolbar.pointerMoved(to: nil)
-        try stage.rest(on: "Close")
-        #expect(stage.tip == "Close  esc")
+        try stage.rest(on: "Click through")
+        #expect(stage.tip == "Click through  esc")
     }
 
     @Test func row2_112_theColumnShowsEachKeyAndTheTipIsAtTheSideThatHasRoom() throws {
@@ -770,8 +774,10 @@ extension DrawControllerTests.Stage {
         // Each button has the size that it has in the row. Thus its key is in the same corner,
         // and Fade, Hold and Sticky show their full names.
         #expect(buttons.map { $0.frame.size } == sizesInTheRow && buttons.map { $0.keyFrame } == keysInTheRow)
+        // Each button shows a key, but Close (row 4.40).
+        #expect(buttons.filter { $0.key.isEmpty }.map { $0.name } == ["Close"])
         for button in buttons {
-            #expect(!button.key.isEmpty && button.bounds.contains(button.keyFrame), "the key of \(button.name)")
+            #expect(button.bounds.contains(button.keyFrame), "the key of \(button.name)")
             #expect(toolbar.bounds.insetBy(dx: 4, dy: 4).contains(button.frame), "the button \(button.name)")
         }
         for name in ["Fade", "Hold", "Sticky"] {
@@ -846,7 +852,7 @@ extension DrawControllerTests.Stage {
         toolbar = try stage.toolbar
         try stage.rest(on: "Pen")
         let tip = try #require(stage.controller.tipPanel)
-        stage.session.escape()
+        stage.session.stop()
         #expect(stage.controller.mode == .off)
         #expect(stage.controller.tipPanel == nil && !tip.isVisible && toolbar.tipTimer == nil)
         #expect(stage.controller.timer == nil && stage.controller.screenObserver == nil && stage.controller.keysObserver == nil)
