@@ -2,7 +2,8 @@ import AppKit
 import Carbon.HIToolbox
 import SwiftUI
 
-/// The rows of the settings window (D7, D11): the two hotkeys, "Open at login", and the keys of the toolbar.
+/// The rows of the settings window (D7, D11, D12): the two hotkeys, "Open at login", the seconds
+/// of Fade and Hold, and the keys of the toolbar.
 struct SettingsView: View {
     @ObservedObject var model: SettingsModel
 
@@ -13,12 +14,18 @@ struct SettingsView: View {
                 hotKeyRow("Click through", .clickThrough)
                 openAtLoginRow
             }
+            Section("Marks") {
+                marks
+            }
             Section("Toolbar keys") {
                 toolbarKeys
             }
         }
         .formStyle(.grouped)
+        // The form has the height of its rows. With many red lines at the same time it stops at
+        // this height and scrolls, so the window with its title bar stays below 640 points (row 5.27).
         .frame(width: 460)
+        .frame(maxHeight: 610)
         .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -64,9 +71,33 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: The seconds of Fade and Hold
+
+    /// The two number fields of the part "Marks" (row 3.20), and the red line of a refused value (row 3.22).
+    private var marks: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // The two fields are in one line, so the window stays low (row 5.27).
+            HStack(spacing: 24) {
+                SecondsField(title: "Fade seconds", seconds: model.fadeSeconds) {
+                    model.setFadeSeconds($0)
+                    return model.fadeSeconds
+                }
+                SecondsField(title: "Hold seconds", seconds: model.holdSeconds) {
+                    model.setHoldSeconds($0)
+                    return model.holdSeconds
+                }
+            }
+            if let problem = model.secondsProblem {
+                Text(problem).font(.callout).foregroundStyle(.red)
+            }
+            Text("How long a Fade mark and the Hold marks stay: 1 to 60 seconds.")
+                .font(.callout).foregroundStyle(.secondary)
+        }
+    }
+
     // MARK: The keys of the toolbar
 
-    /// The 18 keys in four groups, three in a line, so the window stays low (rows 5.20 and 5.27).
+    /// The 21 keys in four groups, three in a line, so the window stays low (rows 5.20 and 5.27).
     private var toolbarKeys: some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(ToolbarAction.groups, id: \.title) { group in
@@ -126,6 +157,41 @@ struct SettingsView: View {
 
     private static func lines(of actions: [ToolbarAction]) -> [[ToolbarAction]] {
         stride(from: 0, to: actions.count, by: 3).map { Array(actions[$0..<min($0 + 3, actions.count)]) }
+    }
+}
+
+/// One number field of the part "Marks". Return, Tab or a click in a different field gives the
+/// text to the model. Then the field shows the value that the app uses: a refused text goes away.
+private struct SecondsField: View {
+    let title: String
+    /// Takes the text of the field, and returns the seconds that the app uses after that.
+    let commit: (String) -> Int
+    @State private var text: String
+    @FocusState private var isFocused: Bool
+
+    init(title: String, seconds: Int, commit: @escaping (String) -> Int) {
+        self.title = title
+        self.commit = commit
+        _text = State(initialValue: String(seconds))
+    }
+
+    var body: some View {
+        LabeledContent(title) {
+            TextField(title, text: $text)
+                .labelsHidden()
+                .textFieldStyle(.roundedBorder)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 48)
+                .focused($isFocused)
+                .onSubmit(send)
+                .onChange(of: isFocused) { _, isFocused in
+                    if !isFocused { send() }
+                }
+        }
+    }
+
+    private func send() {
+        text = String(commit(text))
     }
 }
 
