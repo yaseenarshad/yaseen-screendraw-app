@@ -176,10 +176,12 @@ import Testing
         let toolbar = try stage.toolbar
         let buttons = toolbar.subviews.compactMap { $0 as? ToolbarButton }
         let shown = Dictionary(uniqueKeysWithValues: buttons.map { ($0.name, $0.key) })
+        // "Click through" shows the fixed key esc (row 4.30). Close shows no key (row 4.40).
         #expect(shown == [
+            "Click through": "esc", "Close": "",
             "Select": "V", "Pen": "W", "Highlight": "H", "Line": "D", "Arrow": "A",
             "Rectangle": "R", "Ellipse": "O", "Text": "T", "Stamp": "N",
-            "Undo": "⌘Z", "Redo": "⇧⌘Z", "Clear all": "⌫", "Close": "esc",
+            "Undo": "⌘Z", "Redo": "⇧⌘Z", "Clear all": "⌫",
             "Thin": "1", "Medium": "2", "Thick": "3",
             "Red": "4", "Amber": "5", "Green": "6", "Blue": "7", "Black": "8", "White": "9",
             "Fade": "F", "Hold": "G", "Sticky": "S",
@@ -201,7 +203,7 @@ import Testing
 
         // The picture of each button with and without its key. The pixels that differ are the key.
         let scale = 2
-        for button in buttons {
+        for button in buttons where !button.key.isEmpty {
             // AppKit fills the layer of the button with `draw(_:)`. That is where the key is drawn.
             #expect(!button.wantsUpdateLayer)
             // The corner: 3 points or less from the right edge and from the bottom edge. The button counts from its top.

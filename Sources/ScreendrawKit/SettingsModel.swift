@@ -4,7 +4,8 @@ import Carbon.HIToolbox
 /// The state and the rules of the settings window, with no window and no view.
 ///
 /// The model owns the changes of the settings: it registers the two hotkeys, stores them, stores
-/// the keys of the toolbar and the seconds of Fade and Hold, and asks macOS for "open at login". The app and the window only call it.
+/// the keys of the toolbar, the seconds of Fade and Hold and the switch of Esc, and asks macOS for
+/// "open at login". The app and the window only call it.
 /// Thus a test proves the rules.
 @MainActor
 final class SettingsModel: ObservableObject {
@@ -34,6 +35,8 @@ final class SettingsModel: ObservableObject {
     @Published private(set) var holdSeconds: Int
     /// The red line below the two seconds fields.
     @Published private(set) var secondsProblem: String?
+    /// The switch "Marks stay visible after Esc" (D20).
+    @Published private(set) var marksStayAfterEsc: Bool
     /// The real state from macOS, not a stored value.
     @Published private(set) var openAtLogin = false
     /// The red line below the switch.
@@ -54,6 +57,7 @@ final class SettingsModel: ObservableObject {
         toolbarKeys = store.toolbarKeys.all
         fadeSeconds = store.drawPrefs.fadeSeconds
         holdSeconds = store.drawPrefs.holdSeconds
+        marksStayAfterEsc = store.drawPrefs.marksStayAfterEsc
         refreshOpenAtLogin()
     }
 
@@ -218,6 +222,15 @@ final class SettingsModel: ObservableObject {
     /// The whole number from 1 to 60 that a text gives. `nil` for an empty text, 0, 61 or a letter.
     private static func seconds(from text: String) -> Int? {
         Int(text.trimmingCharacters(in: .whitespaces)).flatMap { DrawPrefs.secondsRange.contains($0) ? $0 : nil }
+    }
+
+    // MARK: The marks after Esc
+
+    /// The switch "Marks stay visible after Esc" (row 4.36). The drawing part reads the store when
+    /// Esc arrives, so the new value works at the next Esc.
+    func setMarksStayAfterEsc(_ stay: Bool) {
+        store.drawPrefs.marksStayAfterEsc = stay
+        marksStayAfterEsc = stay
     }
 
     // MARK: Open at login

@@ -1,13 +1,14 @@
 import Foundation
 
 /// The small values that the drawing part remembers: the tool, the size, the colour, the stay
-/// mode, and the seconds of Fade and Hold. Nothing else of the drawing part goes to the disk.
-/// No mark is saved.
+/// mode, the seconds of Fade and Hold, and what Esc does with the marks. Nothing else of the
+/// drawing part goes to the disk. No mark is saved.
 ///
 /// The `UserDefaults` is a parameter, so a test gives one that keeps its values in memory.
 /// A value that is missing or broken gives the value of the first start. The store never fails.
 /// The settings of the shell (the hotkeys) are in `SettingsStore`. The two share no key.
-/// The settings window writes the two seconds values here (D12), and the session reads them.
+/// The settings window writes the two seconds values (D12) and the switch of Esc (D20) here, and
+/// the session reads them.
 struct DrawPrefs {
     private enum Key {
         static let tool = "drawTool"
@@ -16,6 +17,7 @@ struct DrawPrefs {
         static let stay = "drawStayMode"
         static let fadeSeconds = "drawFadeSeconds"
         static let holdSeconds = "drawHoldSeconds"
+        static let marksStayAfterEsc = "drawMarksStayAfterEsc"
     }
 
     /// Fade seconds and Hold seconds are whole numbers in this range (row 3.21).
@@ -60,6 +62,12 @@ struct DrawPrefs {
     var holdSeconds: Int {
         get { seconds(Key.holdSeconds) ?? DrawPrefs.firstHoldSeconds }
         nonmutating set { defaults.set(newValue, forKey: Key.holdSeconds) }
+    }
+
+    /// The switch "Marks stay visible after Esc" (row 4.36). Off at the first start: Esc hides the marks.
+    var marksStayAfterEsc: Bool {
+        get { defaults.object(forKey: Key.marksStayAfterEsc) as? Bool ?? false }
+        nonmutating set { defaults.set(newValue, forKey: Key.marksStayAfterEsc) }
     }
 
     /// A stored value that is not valid gives the start value (row 3.26).

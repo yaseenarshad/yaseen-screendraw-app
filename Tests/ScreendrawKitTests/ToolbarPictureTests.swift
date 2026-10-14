@@ -109,6 +109,68 @@ struct Scene {
         try picture("Sticky", "v020-bar-tip-right.png")
     }
 
+    /// Version 0.3.0 (YAZ-2837): the toolbar with the "Click through" button, as a row and as a
+    /// column, in mode drawing and in click-through with the lit button, and the tip of that button.
+    @Test func theToolbarWithTheClickThroughButtonInDrawingAndInClickThrough() throws {
+        let stage = DrawControllerTests.Stage(screens: [Desks.main])
+        stage.controller.toggleDrawing()
+
+        /// The toolbar as it is on the screen now, with the tip of one button if `tipOf` names one.
+        @discardableResult
+        func picture(_ name: String, tipOf button: String? = nil) throws -> NSBitmapImageRep {
+            let panel = try stage.panel
+            try stage.toolbar.pointerMoved(to: nil)
+            var area = panel.frame
+            var tip: ToolbarTip?
+            if let button = button {
+                try stage.rest(on: button)
+                let shown = try #require(stage.controller.tipPanel)
+                #expect(!panel.frame.intersects(shown.frame) && Desks.main.visibleFrame.contains(shown.frame))
+                area = area.union(shown.frame)
+                tip = shown
+            }
+            var scene = Scene(area: area.insetBy(dx: -20, dy: -20))
+            scene.add(panel.toolbarView, frame: panel.frame, strength: panel.alphaValue)
+            if let tip = tip { scene.add(try #require(tip.contentView), frame: tip.frame) }
+            return try scene.write(name)
+        }
+
+        /// How light the background of a button is in a picture of the toolbar alone: 0 is black, 1 is white.
+        /// The point is 3 points inside the top-left corner of the button, where no picture and no key is.
+        func background(of name: String, in bitmap: NSBitmapImageRep) throws -> CGFloat {
+            let frame = try stage.toolbar.button(named: name).frame
+            let color = try #require(bitmap.colorAt(x: Int((20 + frame.minX + 3) * 2), y: Int((20 + frame.minY + 3) * 2)))
+            return color.redComponent
+        }
+
+        // Mode drawing: the row at the bottom centre. "Click through" is not lit, and the Pen is.
+        let row = try picture("v030-bar-row.png")
+        #expect(try background(of: "Pen", in: row) > background(of: "Click through", in: row) + 0.1)
+        try picture("v030-bar-row-tip.png", tipOf: "Click through")
+        #expect(stage.tip == "Click through  esc")
+
+        // Click-through: the toolbar is dim, and "Click through" is lit. On the dim toolbar the lit
+        // button is still clearly lighter than a button that is not lit.
+        try stage.press("Click through")
+        #expect(try stage.panel.alphaValue == 0.5)
+        let dimRow = try picture("v030-bar-row-clickthrough.png")
+        #expect(try background(of: "Click through", in: dimRow) > background(of: "Arrow", in: dimRow) + 0.05)
+        try picture("v030-bar-row-clickthrough-tip.png", tipOf: "Click through")
+
+        // The column at the left edge, in click-through and in mode drawing.
+        try stage.drag(from: stage.gap(after: 2), to: CGPoint(x: 60, y: 1000))
+        #expect(try stage.toolbar.form == .column && stage.controller.mode == .clickThrough)
+        let dimColumn = try picture("v030-bar-column-clickthrough.png")
+        #expect(try background(of: "Click through", in: dimColumn) > background(of: "Arrow", in: dimColumn) + 0.05)
+        try picture("v030-bar-column-tip.png", tipOf: "Click through")
+        try stage.press("Click through")
+        #expect(stage.controller.mode == .drawing)
+        let column = try picture("v030-bar-column.png")
+        #expect(try background(of: "Pen", in: column) > background(of: "Click through", in: column) + 0.1)
+        try picture("v030-bar-column-close-tip.png", tipOf: "Close")
+        #expect(stage.tip == "Close")
+    }
+
     /// Click-through: the toolbar is at half strength, and the screen shows through it (row 4.2).
     @Test func theDimToolbarOfClickThrough() throws {
         let stage = DrawControllerTests.Stage(screens: [Desks.main])

@@ -429,9 +429,9 @@ import Testing
         field.doCommand(by: #selector(NSResponder.cancelOperation(_:)))
         #expect(view.textView == nil)
         #expect(stage.session.mode == .drawing && stage.session.markCount == 1)
-        // The second Esc has no text to cancel: it clears and stops (row 4.8).
+        // The second Esc has no text to cancel: it pauses the pen, and the mark stays (row 4.34).
         view.keyDown(with: try stage.key(53))
-        #expect(stage.session.mode == .off && stage.session.markCount == 0)
+        #expect(stage.session.mode == .clickThrough && stage.session.markCount == 1)
     }
 
     @Test func row2_10_theOpenTextFieldGetsTheNewSizeAndColour() throws {
@@ -510,10 +510,9 @@ import Testing
         #expect(!view.performKeyEquivalent(with: try stage.key(6, "z", flags: [.command, .control])))
         #expect(stage.session.markCount == 2)
 
-        // Esc clears each mark and turns drawing off (row 4.8).
+        // Esc pauses the pen. It removes no mark (row 4.34).
         view.keyDown(with: try stage.key(53))
-        #expect(stage.session.mode == .off && stage.session.markCount == 0)
-        #expect(view.markLayers.isEmpty)
+        #expect(stage.session.mode == .clickThrough && stage.session.markCount == 2)
     }
 
     // MARK: Fade
