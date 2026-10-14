@@ -344,6 +344,20 @@ import Testing
         #expect(model.loginItemProblem == nil)
     }
 
+    /// macOS can refuse to make an accessory app the active app. Then a normal window has no
+    /// keyboard and goes behind the windows of the active app (YAZ-2823). The test does not show the window.
+    @Test func row5_1_theSettingsWindowIsAPanelThatDoesNotNeedTheActiveApp() {
+        let window = SettingsWindowController(model: makeModel(hotKeys: FakeHotKeyRegistrar())).window
+        #expect(window.styleMask.contains([.titled, .closable, .nonactivatingPanel]))
+        // It takes the keyboard at once, and it stays when the app is not the active app.
+        #expect(!window.becomesKeyOnlyIfNeeded && window.canBecomeKey)
+        #expect(!window.hidesOnDeactivate)
+        // It stays above the other windows until the user closes it.
+        #expect(window.isFloatingPanel && window.level == .floating)
+        #expect(!window.isReleasedWhenClosed)
+        #expect(!window.isVisible)
+    }
+
     /// The delegate calls of the settings window, with no window on a screen. The test makes the
     /// calls that AppKit makes. The key monitor is local: it sees only the keys of this process.
     @Test func row5_6_theRecorderAndTheKeyMonitorStopWhenTheWindowLosesTheKeyboard() {

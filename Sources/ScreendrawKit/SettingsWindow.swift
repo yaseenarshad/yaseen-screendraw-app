@@ -133,20 +133,27 @@ struct SettingsView: View {
 @MainActor
 final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let model: SettingsModel
-    private let window: NSWindow
+    let window: NSPanel
     /// Exists only while the settings window has the keyboard.
     private(set) var keyMonitor: Any?
 
     init(model: SettingsModel) {
         self.model = model
-        window = NSWindow(
+        // A panel that does not activate the app. The app is an accessory app, and macOS can refuse
+        // to make it the active app. A normal window then opens with no keyboard, and it goes behind
+        // the windows of the active app (YAZ-2823). This panel takes the keyboard without the active app.
+        window = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 460, height: 10),
-            styleMask: [.titled, .closable],
+            styleMask: [.titled, .closable, .nonactivatingPanel],
             backing: .buffered,
             defer: true
         )
         super.init()
 
+        window.becomesKeyOnlyIfNeeded = false
+        window.hidesOnDeactivate = false
+        // It stays above the other windows until the user closes it, so it cannot get lost.
+        window.isFloatingPanel = true
         window.title = "Yaseen Screendraw settings"
         // The controller keeps the window, so "Settings…" shows the same window again.
         window.isReleasedWhenClosed = false
@@ -163,24 +170,13 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         if let keyMonitor = keyMonitor { NSEvent.removeMonitor(keyMonitor) }
     }
 
-    /// Shows the window in front of other apps. A second call shows the same window.
+    /// Shows the window in front of other apps and gives it the keyboard. A second call shows the same window.
     func show() {
         model.refreshOpenAtLogin()
-        // An accessory app is not the active app, and macOS can refuse or delay `activate()`.
-        // Then `makeKeyAndOrderFront` puts the window behind the windows of the active app.
-        // `orderFrontRegardless` does not wait for the activation: the window shows at once.
+        // `orderFrontRegardless` does not need the active app, and a panel that does not activate
+        // the app can take the keyboard without it.
         window.orderFrontRegardless()
-        bringToFront()
-        // "Settings…" comes from the menu of the menu bar icon, and that menu is still closing
-        // now. macOS can ignore an activation in that moment. Thus the app asks again one turn later.
-        DispatchQueue.main.async { [weak self] in self?.bringToFront() }
-    }
-
-    /// Makes the app active and gives the window the keyboard, when macOS permits it.
-    private func bringToFront() {
-        guard window.isVisible else { return }
-        NSApp.activate()
-        window.makeKeyAndOrderFront(nil)
+        window.makeKey()
     }
 
     // MARK: The keys
