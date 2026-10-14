@@ -1,9 +1,9 @@
 import AppKit
 
-/// The toolbar (D5, D6, D16). One row: the grip, the tools, Undo, Redo, Clear all, the sizes,
-/// the colours, the switch Fade, Hold, Sticky, the gear and Close. At the left or the right edge
-/// of a screen it is one column. `ToolbarLayout` gives the place of each button for each form.
-/// Each button shows its key in its bottom right corner (D11).
+/// The toolbar (D5, D6, D16, D20). One row: the grip, "Click through", the tools, Undo, Redo,
+/// Clear all, the sizes, the colours, the switch Fade, Hold, Sticky, the gear and Close. At the
+/// left or the right edge of a screen it is one column. `ToolbarLayout` gives the place of each
+/// button for each form. Each button shows its key in its bottom right corner (D11). Close has no key.
 ///
 /// A thin adapter: a click calls `DrawSession`, and `refresh()` shows the state that it reads there.
 final class Toolbar: NSView {
@@ -43,6 +43,7 @@ final class Toolbar: NSView {
     private var stayButtons: [StayMode: ToolbarButton] = [:]
     private let undoButton: ToolbarButton
     private let redoButton: ToolbarButton
+    private let clickThroughButton: ToolbarButton
 
     /// - Parameter tools: the tool buttons. A test gives a longer list, to see the layout with more tools.
     init(session: DrawSession, tools: [Tool] = Tool.allCases) {
@@ -53,7 +54,13 @@ final class Toolbar: NSView {
         redoButton = ToolbarButton(name: "Redo", image: Toolbar.symbol("arrow.uturn.forward", name: "Redo")) {
             [session] in session.redo()
         }
-        // The four fixed keys (row 2.32). They are not in Settings.
+        // The pointer arrow means "I click as usual": the button pauses the pen and starts it
+        // again (rows 4.30 to 4.32). Esc pauses the pen too, so the button shows that key.
+        clickThroughButton = ToolbarButton(name: "Click through", image: Toolbar.symbol("cursorarrow", name: "Click through")) {
+            [session] in session.toggleClickThrough()
+        }
+        // The fixed keys (rows 2.32 and 4.30). They are not in Settings.
+        clickThroughButton.key = "esc"
         undoButton.key = "⌘Z"
         redoButton.key = "⇧⌘Z"
         super.init(frame: .zero)
@@ -80,8 +87,8 @@ final class Toolbar: NSView {
         let settings = ToolbarButton(name: "Settings", image: Toolbar.symbol("gearshape", name: "Settings")) {
             [session] in session.openSettings()
         }
+        // Close shows no key: Esc pauses the pen, and it does not do what Close does (row 4.40).
         clear.key = "⌫"
-        close.key = "esc"
         settings.key = "⌘,"
         let sizes = MarkSize.allCases.map { size -> ToolbarButton in
             let button = ToolbarButton(name: size.name, image: Toolbar.dot(for: size)) { [session] in session.setSize(size) }
@@ -100,8 +107,9 @@ final class Toolbar: NSView {
             return button
         }
 
-        // The order of row 2.100. The gear is immediately before Close (row 2.40).
-        groups = [tools, [undoButton, redoButton, clear], sizes, colors, stays, [settings, close]]
+        // The order of row 2.100, with "Click through" as a group of its own before the tools
+        // (row 4.30). The gear is immediately before Close (row 2.40).
+        groups = [[clickThroughButton], tools, [undoButton, redoButton, clear], sizes, colors, stays, [settings, close]]
         groups.joined().forEach { addSubview($0) }
         layOut()
 
@@ -123,8 +131,10 @@ final class Toolbar: NSView {
     // The grip is at the top-left. A second row is below the first row.
     override var isFlipped: Bool { true }
 
-    /// Shows the state of the session: the selected tool, size, colour and stay mode.
+    /// Shows the state of the session: the mode, and the selected tool, size, colour and stay mode.
     func refresh() {
+        // "Click through" is lit while the pen is paused (row 4.31).
+        clickThroughButton.isOn = session.mode == .clickThrough
         for (tool, button) in toolButtons { button.isOn = tool == session.tool }
         for (size, button) in sizeButtons { button.isOn = size == session.style.size }
         for (color, button) in colorButtons { button.isOn = color == session.style.color }
@@ -184,9 +194,10 @@ final class Toolbar: NSView {
 
     // MARK: The pictures of the buttons
 
-    private static func symbolName(for tool: Tool) -> String {
+    static func symbolName(for tool: Tool) -> String {
         switch tool {
-        case .select: return "cursorarrow"
+        // The four arrows tell "move". The pointer arrow is the picture of "Click through" (row 4.33).
+        case .select: return "arrow.up.and.down.and.arrow.left.and.right"
         case .pen: return "pencil"
         case .highlight: return "highlighter"
         case .line: return "line.diagonal"
