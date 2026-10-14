@@ -4,7 +4,8 @@ import Foundation
 ///
 /// - `off`: no overlay window exists. The screen works as usual.
 /// - `drawing`: the overlay takes the mouse and the keyboard.
-/// - `clickThrough`: the marks stay, and the mouse and the keyboard go to the apps below.
+/// - `clickThrough`: the pen is paused. The toolbar stays, and the mouse and the keyboard go to
+///   the apps below. The marks stay on the screen, or they are hidden until the mode is drawing (D20).
 enum DrawMode: Equatable {
     case off, drawing, clickThrough
 }
@@ -22,7 +23,8 @@ protocol DrawControlling: AnyObject {
     /// The draw hotkey, its menu row, and the Close button.
     func toggleDrawing()
 
-    /// The click-through hotkey and its menu row. It does nothing when the mode is `off`.
+    /// The click-through hotkey and its menu row. When the mode is `off`, it shows the toolbar
+    /// with the pen paused (D18).
     func toggleClickThrough()
 
     /// The menu row "Clear all". One Undo brings the marks back.

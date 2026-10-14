@@ -21,12 +21,14 @@ final class DrawController: DrawControlling {
     private let pointer: () -> CGPoint
     private var shownMode = DrawMode.off
     private var shownScreens: [OverlayScreen] = []
-    /// One for each screen while drawing is on. Empty while the mode is off.
+    /// One for each screen while drawing is on. Empty while the mode is off, and while the marks
+    /// are hidden in click-through (row 4.43).
     private(set) var overlays: [OverlayWindow] = []
     private(set) var toolbarPanel: ToolbarPanel?
     /// Exists only while the tip of a toolbar button shows.
     private(set) var tipPanel: ToolbarTip?
-    /// Exists only while a Fade or Hold mark exists.
+    /// Exists only while a Fade or Hold mark exists. It also runs while such a mark is hidden,
+    /// because its clock continues (row 4.37).
     private(set) var timer: Timer?
     /// Exists only while drawing is on.
     private(set) var screenObserver: NSObjectProtocol?
@@ -69,7 +71,7 @@ final class DrawController: DrawControlling {
     }
 
     /// In mode off this is "Show toolbar": the toolbar shows with the pen paused, and the clicks
-    /// and the keys still go to the apps (D18, row 4.26).
+    /// and the keys still go to the apps (D18, row 4.26). The kept marks stay hidden (row 4.39).
     func toggleClickThrough() {
         if session.mode == .off {
             shownScreens = screens()
@@ -201,12 +203,17 @@ final class DrawController: DrawControlling {
     /// Each mode gets new overlay windows. A window that starts to ignore the mouse and leaves
     /// the screen in the same moment can keep the mouse. Then the clicks do not go to the apps.
     /// A window that ignores the mouse from its start does not have this problem (YAZ-2792).
+    ///
+    /// While the marks are hidden, click-through has no overlay at all. There is no mark to show,
+    /// and the clicks and the keys go to the apps with no window of this app between (row 4.43).
     private func showMode() {
         let isClickThrough = shownMode == .clickThrough
         // The dim toolbar tells that the pen is paused. It still takes clicks.
         toolbarPanel?.alphaValue = isClickThrough ? 0.5 : 1
         let old = overlays
-        overlays = shownScreens.map { OverlayWindow(screen: $0, session: session, clickThrough: isClickThrough) }
+        overlays = session.marksAreHidden ? [] : shownScreens.map {
+            OverlayWindow(screen: $0, session: session, clickThrough: isClickThrough)
+        }
         overlays.forEach { $0.overlayView.refresh() }
 
         if canShow {
@@ -217,6 +224,9 @@ final class DrawController: DrawControlling {
                 let point = pointer()
                 (overlays.first { $0.frame.contains(point) } ?? overlays.first)?.makeKey()
                 NSCursor.crosshair.set()
+            } else {
+                // The crosshair of the overlay must not stay on the screen that the user uses now.
+                NSCursor.arrow.set()
             }
         }
         // The old windows close after the new ones are on the screen. Thus the marks do not blink.

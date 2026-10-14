@@ -13,7 +13,7 @@ The app has three modes.
 
 - **Off.** The screen works as usual. The app has no overlay window and runs no timer.
 - **Drawing.** A transparent overlay is on each screen. The mouse draws. The overlay has the keyboard.
-- **Click-through.** The marks stay on the screen. The mouse and the keyboard go to the apps below.
+- **Click-through.** The pen is paused. The toolbar stays on the screen. The mouse and the keyboard go to the apps below. The marks stay on the screen, or they are hidden until you draw again (see "Use the screen while the pen is paused").
 
 The menu bar icon is a pencil in a circle. The circle is filled while the mode is drawing or click-through.
 
@@ -25,9 +25,9 @@ The menu bar icon is a pencil in a circle. The circle is filled while the mode i
 | Key | What it does |
 | -- | -- |
 | Control-Option-D | Turns drawing on and off. The toolbar shows at the place that you gave it. At the first start it is at the bottom centre of the screen that has the pointer. |
-| Control-Option-C | Changes between drawing and click-through. While drawing is off, it shows the toolbar with the pen paused: the screen works as usual, and a click on a tool starts drawing. |
-| Esc | Cancels the text that is open. With a selected mark, it removes only the selection. With neither, it clears all the marks and stops drawing. |
-| Delete | With a selected mark, it removes only that mark. With no selection, it clears all the marks. Drawing stays on. Command-Z brings the marks back. |
+| Control-Option-C | Changes between drawing and click-through. From drawing, the marks stay visible. While drawing is off, it shows the toolbar with the pen paused: the screen works as usual, and a click on a tool starts drawing. |
+| Esc | Pauses the pen: the mode changes to click-through, and you can use the screen. It removes no mark. The marks are hidden until you draw again. A setting keeps them visible. If a text is open, Esc only cancels that text. If a mark is selected, Esc only removes the selection. |
+| Delete | With a selected mark, it removes only that mark. With no selection, it clears all the marks. Drawing stays on. Command-Z brings the marks back. Delete is the one key that removes marks. |
 | Shift | During a drag, it makes the mark straight (see "How the tools work"). |
 | Command-Z | Undo. |
 | Shift-Command-Z | Redo. |
@@ -55,7 +55,7 @@ Each tool, size, colour and value of the switch has a key. The key does the same
 
 - P also selects the Pen, while no button has the key P.
 - L also selects the Line, while no button has the key L.
-- Each button of the toolbar shows its key in its bottom right corner. Undo shows ⌘Z, Redo shows ⇧⌘Z, Clear all shows ⌫, the gear shows ⌘, and Close shows esc.
+- Each button of the toolbar shows its key in its bottom right corner. "Click through" shows esc, Undo shows ⌘Z, Redo shows ⇧⌘Z, Clear all shows ⌫, and the gear shows ⌘,. Close shows no key.
 - You can change each of the 21 keys (see "Settings").
 - The toolbar keys work only in mode drawing. They are not global hotkeys. In click-through and while drawing is off, each key goes to the app that has the keyboard.
 - While a text is open, each key is for the typing.
@@ -70,7 +70,8 @@ Each tool, size, colour and value of the switch has a key. The key does the same
 The toolbar is one row. From its start:
 
 - The grip: six small dots. A drag of the grip moves the toolbar.
-- The tools: Select, Pen, Highlight, Line, Arrow, Rectangle, Ellipse, Text, Stamp.
+- "Click through": the pointer arrow. A click pauses the pen, and a second click starts it again (see "Use the screen while the pen is paused").
+- The tools: Select, Pen, Highlight, Line, Arrow, Rectangle, Ellipse, Text, Stamp. The picture of Select is four arrows.
 - Undo, Redo, Clear all.
 - Three sizes: Thin, Medium, Thick.
 - Six colours: red, amber, green, blue, black, white.
@@ -78,7 +79,7 @@ The toolbar is one row. From its start:
 - The gear. It opens Settings (see "The gear").
 - Close, at the end. It does the same as Control-Option-D.
 
-Each button shows its key in its bottom right corner (see "The toolbar keys").
+Each button shows its key in its bottom right corner (see "The toolbar keys"). Close has no key.
 
 How the tools work:
 
@@ -115,14 +116,14 @@ With Select, a click on a mark selects it. The selected mark shows a thin dashed
 - A drag of a handle changes the size of a Rectangle, an Ellipse, an Arrow or a Line. A Pen mark, a Highlight mark, a Text and a Stamp only move.
 - A size button or a colour button, or its key, changes the selected mark. It is also the size or the colour of the next mark.
 - A double-click on a Text mark opens its text again. Return finishes it. An empty text removes the mark.
-- Delete removes only the selected mark. Esc removes only the selection.
+- Delete removes only the selected mark. Esc removes only the selection. The next Esc pauses the pen.
 - A move, a size change, a size or colour change and a delete are one Undo step each.
 - A Fade or Hold mark can be selected while it is visible. A move does not start its clock again.
 - The switch Fade, Hold, Sticky does not change the selected mark.
 
 Other rules of the toolbar:
 
-- In click-through the toolbar is dim and still takes clicks. A click on a tool goes back to drawing with that tool.
+- In click-through the toolbar is dim and still takes clicks. The "Click through" button is lit. A click on it, or on a tool, goes back to drawing.
 - With two screens there is one toolbar. A mark stays on the screen where its drag started.
 
 ### The forms and the place of the toolbar
@@ -140,6 +141,7 @@ Other rules of the toolbar:
 ### The hover tip
 
 - Rest the pointer on a button for half a second. A small tip shows the name and the key of the button, for example "Arrow  A".
+- The tip of "Click through" is "Click through  esc". Close has no key, so its tip is "Close".
 - The tip goes away when the pointer leaves the button, and when you click.
 - A row has its tip above the button. A column has its tip at the side that has room.
 - The tip also shows while a different app is the active app.
@@ -148,14 +150,30 @@ Other rules of the toolbar:
 
 - The gear is immediately before Close. Its key is Command-comma.
 - In mode drawing, the gear first changes the mode to click-through: the marks stay, and the toolbar is dim. Then the settings window opens in front.
-- In click-through, the gear opens the settings window. The mode does not change.
+- In click-through, the gear opens the settings window. The mode does not change. Marks that are hidden stay hidden.
 - A text that is open, or a drag in progress, is finished first.
 - After you close the settings window, the mode is still click-through. Press Control-Option-C or click a tool to draw again.
+
+## Use the screen while the pen is paused
+
+There are three ways to pause the pen from mode drawing. Each one changes the mode to click-through.
+
+- **Esc.** The marks are hidden, so the screen is clean. With the setting "Marks stay visible after Esc" on, the marks stay visible.
+- **The "Click through" button** of the toolbar. The marks stay visible.
+- **Control-Option-C.** The marks stay visible.
+
+To draw again, click a tool, click "Click through", or press Control-Option-C. Hidden marks show again at the same places.
+
+- Hidden marks are not deleted. The app keeps them and the Undo history.
+- The clocks of Fade and Hold marks continue while the marks are hidden. A mark whose time is over is gone when you draw again.
+- In click-through no window of the app has the keyboard. Esc and each other key go to the app below. Thus Esc pauses the pen, and it does not start it again.
+- "Show toolbar" from drawing off also keeps the marks hidden: the Sticky marks that the app keeps show again when you draw.
 
 ## What happens to the marks
 
 - Control-Option-D and Close stop drawing. The app keeps the Sticky marks in memory and drops the Fade and Hold marks. The Sticky marks show again when you start drawing again.
-- Esc clears all the marks and stops drawing. Start drawing again and press Command-Z one time to get them back.
+- Esc removes no mark. It pauses the pen and hides the marks until you draw again.
+- Delete removes the selected mark, or each mark when no mark is selected.
 - Clear all removes each mark on each screen. One Undo brings them back.
 - Quit removes all the marks. The app writes no mark to the disk.
 
@@ -164,8 +182,8 @@ Other rules of the toolbar:
 Click the menu bar icon. In mode drawing the overlay is above the menu bar, so change to click-through first, or stop drawing.
 
 - "Start drawing" or "Stop drawing", with its hotkey.
-- "Show toolbar", with the click-through hotkey, while drawing is off. It shows the toolbar with the pen paused. Click a tool to draw.
-- "Click through", with the same hotkey, while drawing is on. It has a check mark in click-through.
+- "Show toolbar", with the click-through hotkey, while drawing is off. It shows the toolbar with the pen paused. The Sticky marks that the app keeps stay hidden. Click a tool to draw, and they show again.
+- "Click through", with the same hotkey, while drawing is on. It has a check mark in click-through, with visible and with hidden marks.
 - "Clear all". It also clears the Sticky marks that the app keeps while drawing is off.
 - "Settings…". It is not available in mode drawing. There, use the gear of the toolbar or Command-comma.
 - "Quit".
@@ -181,6 +199,7 @@ Click the menu bar icon. In mode drawing the overlay is above the menu bar, so c
   - A value is a whole number from 1 to 60. Type it and press Return or Tab. The app remembers it.
   - If the field is empty or has a different value, a red line tells the rule and the old value stays.
   - A Fade mark keeps the seconds that it was drawn with. The Hold marks on the screen use a new value at once.
+  - "Marks stay visible after Esc" is a switch. It is off at the start: Esc hides the marks until you draw again. Turn it on, and the marks stay on the screen after Esc. The new value applies at the next Esc.
 - **Toolbar keys.** The 21 keys of the toolbar are in four groups: Tools, Sizes, Colours, Stay. Click the key of a button and type the new key. Esc or a second click stops with no change.
   - A key is one letter, digit or punctuation mark, with no Command, Control or Option. Space, Return, Tab, Esc, Delete and the arrow keys are not possible.
   - Each key belongs to one button only. If a different button has the key, a red line names that button and the old key stays. Give that button a different key first.

@@ -120,7 +120,7 @@ import Testing
         #expect(session.allMarks.map { $0.stay } == [.sticky])
     }
 
-    @Test func row3_6_aStickyMarkStaysUntilClearAllOrEsc() {
+    @Test func row3_6_aStickyMarkStaysUntilClearAll() {
         let fixture = Fixture()
         let session = fixture.session, clock = fixture.clock
         session.drawLine()
@@ -136,8 +136,9 @@ import Testing
         #expect(session.markCount == 0)
         session.undo()
         #expect(session.markCount == 1)
+        // Esc removes no mark (row 4.41).
         session.escape()
-        #expect(session.markCount == 0)
+        #expect(session.markCount == 1)
     }
 
     @Test func row3_7_aChangeOfTheSwitchAppliesToNewMarksOnly() {

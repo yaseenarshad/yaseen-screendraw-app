@@ -46,7 +46,7 @@ import Testing
         for name in names {
             #expect(try stage.button(name).image?.accessibilityDescription == name, "\(name)")
         }
-        for symbol in ["cursorarrow", "line.diagonal", "1.circle.fill"] {
+        for symbol in ["arrow.up.and.down.and.arrow.left.and.right", "line.diagonal", "1.circle.fill"] {
             #expect(NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil, "\(symbol)")
         }
         // Each button selects its tool, and the settings list the tools in the same order.
@@ -506,12 +506,11 @@ import Testing
         session.click(at: point(100, 300))
         #expect(numbers(session) == [1])
 
-        // Esc clears all and stops (row 4.8). At the next start, the next stamp is 1.
+        // Esc removes no stamp (row 4.41). Back in mode drawing, the next stamp is 2.
         session.escape()
-        #expect(session.mode == .off && session.markCount == 0)
-        session.start(displays: [Screens.left, Screens.right])
+        #expect(session.mode == .clickThrough && numbers(session) == [1])
+        session.toggleClickThrough()
         session.click(at: point(100, 100))
-        session.click(at: point(200, 100))
         #expect(numbers(session) == [1, 2])
     }
 

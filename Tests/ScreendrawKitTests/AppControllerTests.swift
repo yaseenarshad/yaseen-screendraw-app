@@ -257,11 +257,13 @@ import Testing
             characters: "\u{1B}", charactersIgnoringModifiers: "\u{1B}", isARepeat: false, keyCode: UInt16(kVK_Escape)
         ))
         try #require(real.overlays.first).overlayView.keyDown(with: esc)
-        #expect(real.mode == .off && menu() == off)
-        #expect(real.session.markCount == 0)
+        // Esc pauses the pen and removes no mark (row 4.34). The row has its check mark (row 4.44).
+        #expect(real.mode == .clickThrough && menu() == clickThrough)
+        #expect(real.session.markCount == 1)
 
-        // Click-through, and then a click on a tool: the mode is drawing again.
-        hotKeys.press(controlOptionD)
+        // A click on a tool: the mode is drawing again. Then the click-through hotkey, and a tool again.
+        try #require(real.toolbarPanel).toolbarView.press("Arrow")
+        #expect(real.mode == .drawing && menu() == drawing)
         hotKeys.press(controlOptionC)
         #expect(menu() == clickThrough)
         try #require(real.toolbarPanel).toolbarView.press("Arrow")

@@ -73,7 +73,17 @@ final class DrawSession {
     /// With Select, a pointer that moved less than this is a click, not a drag.
     static let minimumDrag: CGFloat = 3
 
-    private(set) var mode = DrawMode.off
+    private(set) var mode = DrawMode.off {
+        didSet {
+            // The marks can be hidden only in click-through. Each change to mode drawing or to
+            // mode off shows them again (row 4.37).
+            if mode != .clickThrough { marksAreHidden = false }
+        }
+    }
+    /// True while the mode is click-through and the marks are not on the screen: after Esc
+    /// (row 4.34), and after "Show toolbar" from mode off (row 4.39). The session keeps the marks
+    /// and the history, and the clocks of Fade and Hold continue (row 4.37).
+    private(set) var marksAreHidden = false
     /// The screens that have an overlay. Empty while the mode is off.
     private(set) var displays: [DrawDisplay] = []
     private(set) var tool: Tool
@@ -100,7 +110,7 @@ final class DrawSession {
     /// One step of the history.
     private enum Step {
         case add(PlacedMark)
-        /// Clear all, or the clear of Esc: all marks of all screens in one step.
+        /// Clear all, or Delete with no selection: all marks of all screens in one step.
         case clear([PlacedMark])
         /// Select: a move, a size change, a new style or a new text of one mark.
         case change(PlacedMark, to: Mark)
@@ -255,8 +265,10 @@ final class DrawSession {
     /// The draw hotkey when the mode is off. The Sticky marks that the session kept show again.
     func start(displays newDisplays: [DrawDisplay], clickThrough: Bool = false) {
         guard mode == .off else { return }
-        // "Show toolbar" starts with the pen paused: the toolbar shows, and the screen works as usual (D18).
+        // "Show toolbar" starts with the pen paused: the toolbar shows, and the screen works as
+        // usual (D18). The kept marks stay hidden until the mode is drawing (row 4.39).
         mode = clickThrough ? .clickThrough : .drawing
+        marksAreHidden = clickThrough
         displays = newDisplays
         dropMarksOfMissingDisplays()
         marksChanged()
@@ -274,8 +286,9 @@ final class DrawSession {
         marksChanged()
     }
 
-    /// The click-through hotkey while drawing is on. In mode off, the controller starts the session
-    /// with the pen paused (row 4.26). The selection goes away (row 2.88).
+    /// The click-through hotkey while drawing is on, and the "Click through" button of the toolbar.
+    /// From mode drawing, the marks stay visible (rows 4.31 and 4.38). In mode off, the controller
+    /// starts the session with the pen paused (row 4.26). The selection goes away (row 2.88).
     func toggleClickThrough() {
         guard mode != .off else { return }
         finishInProgress()
@@ -302,7 +315,10 @@ final class DrawSession {
         onOpenSettings()
     }
 
-    /// Esc. It arrives only in mode drawing, because only then the overlay has the keyboard.
+    /// Esc: "let me use my screen" (D20). It arrives only in mode drawing, because only then the
+    /// overlay has the keyboard. It removes no mark. An open text or a selection comes first
+    /// (row 4.35). Then the pen is paused, and the marks are hidden unless the setting keeps them
+    /// visible (rows 4.34 and 4.36).
     func escape() {
         guard mode == .drawing else { return }
         // Esc removes the text that is not finished, and drawing stays on. A text that was open
@@ -319,9 +335,9 @@ final class DrawSession {
             onChange?()
             return
         }
-        if clearMarks() { redoSteps = [] }
-        mode = .off
-        displays = []
+        mode = .clickThrough
+        // The session reads the setting now, so a change in the settings window works at the next Esc.
+        marksAreHidden = !prefs.marksStayAfterEsc
         onChange?()
     }
 
