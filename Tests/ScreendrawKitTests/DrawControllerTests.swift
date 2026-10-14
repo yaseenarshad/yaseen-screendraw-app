@@ -353,12 +353,36 @@ import Testing
         #expect(controller.toolbarPanel?.alphaValue == 1)
     }
 
-    @Test func row4_4_theClickThroughHotkeyDoesNothingWhenTheModeIsOff() {
+    /// Row 4.4 said that the hotkey does nothing in mode off. Rows 4.21 to 4.26 replace it (D18).
+    @Test func row4_26_theClickThroughHotkeyInModeOffShowsTheToolbarWithThePenPaused() throws {
         let stage = Stage()
-        stage.controller.toggleClickThrough()
-        #expect(stage.controller.mode == .off)
-        #expect(stage.modes.isEmpty)
-        #expect(stage.controller.overlays.isEmpty)
+        let controller = stage.controller
+        // The app keeps a Sticky mark from the last time (row 4.22).
+        controller.toggleDrawing()
+        stage.session.drawLine()
+        controller.toggleDrawing()
+        stage.modes = []
+
+        controller.toggleClickThrough()
+        #expect(controller.mode == .clickThrough)
+        #expect(stage.modes == [.clickThrough])
+        // The toolbar shows and is dim. The overlays ignore the mouse and cannot take the keyboard (row 4.21).
+        #expect(controller.toolbarPanel?.alphaValue == 0.5)
+        #expect(controller.overlays.count == 2)
+        #expect(controller.overlays.allSatisfy { $0.ignoresMouseEvents && !$0.canBecomeKey })
+        #expect(controller.overlays[0].overlayView.markLayers.count == 1)
+
+        // A click on a tool of the toolbar starts drawing with that tool (row 4.23).
+        try stage.press("Arrow")
+        #expect(controller.mode == .drawing && stage.session.tool == .arrow)
+
+        // The hotkey again: the pen is paused again. Then the draw hotkey turns all off (rows 4.24 and 4.25).
+        controller.toggleClickThrough()
+        #expect(controller.mode == .clickThrough)
+        controller.toggleClickThrough()
+        #expect(controller.mode == .drawing)
+        controller.toggleDrawing()
+        #expect(controller.mode == .off && controller.overlays.isEmpty && controller.toolbarPanel == nil)
     }
 
     @Test func row4_6_theKeptMarksShowAgainInTheNewOverlays() {

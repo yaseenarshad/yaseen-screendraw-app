@@ -253,9 +253,10 @@ final class DrawSession {
     // MARK: The modes
 
     /// The draw hotkey when the mode is off. The Sticky marks that the session kept show again.
-    func start(displays newDisplays: [DrawDisplay]) {
+    func start(displays newDisplays: [DrawDisplay], clickThrough: Bool = false) {
         guard mode == .off else { return }
-        mode = .drawing
+        // "Show toolbar" starts with the pen paused: the toolbar shows, and the screen works as usual (D18).
+        mode = clickThrough ? .clickThrough : .drawing
         displays = newDisplays
         dropMarksOfMissingDisplays()
         marksChanged()
@@ -273,7 +274,8 @@ final class DrawSession {
         marksChanged()
     }
 
-    /// The click-through hotkey. It does nothing when the mode is off. The selection goes away (row 2.88).
+    /// The click-through hotkey while drawing is on. In mode off, the controller starts the session
+    /// with the pen paused (row 4.26). The selection goes away (row 2.88).
     func toggleClickThrough() {
         guard mode != .off else { return }
         finishInProgress()

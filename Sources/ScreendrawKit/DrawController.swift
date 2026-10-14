@@ -68,8 +68,15 @@ final class DrawController: DrawControlling {
         }
     }
 
+    /// In mode off this is "Show toolbar": the toolbar shows with the pen paused, and the clicks
+    /// and the keys still go to the apps (D18, row 4.26).
     func toggleClickThrough() {
-        session.toggleClickThrough()
+        if session.mode == .off {
+            shownScreens = screens()
+            session.start(displays: shownScreens.map { $0.display }, clickThrough: true)
+        } else {
+            session.toggleClickThrough()
+        }
     }
 
     func clearAll() {

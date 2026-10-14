@@ -62,8 +62,8 @@ final class FakeDrawControl: DrawControlling {
 
     func toggleClickThrough() {
         calls.append("toggleClickThrough")
-        guard mode != .off else { return }
-        set(mode == .drawing ? .clickThrough : .drawing)
+        // In mode off this shows the toolbar with the pen paused (row 4.26).
+        set(mode == .clickThrough ? .drawing : .clickThrough)
     }
 
     func clearAll() {

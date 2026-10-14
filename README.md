@@ -25,7 +25,7 @@ The menu bar icon is a pencil in a circle. The circle is filled while the mode i
 | Key | What it does |
 | -- | -- |
 | Control-Option-D | Turns drawing on and off. The toolbar shows at the place that you gave it. At the first start it is at the bottom centre of the screen that has the pointer. |
-| Control-Option-C | Changes between drawing and click-through. It does nothing while drawing is off. |
+| Control-Option-C | Changes between drawing and click-through. While drawing is off, it shows the toolbar with the pen paused: the screen works as usual, and a click on a tool starts drawing. |
 | Esc | Cancels the text that is open. With a selected mark, it removes only the selection. With neither, it clears all the marks and stops drawing. |
 | Delete | With a selected mark, it removes only that mark. With no selection, it clears all the marks. Drawing stays on. Command-Z brings the marks back. |
 | Shift | During a drag, it makes the mark straight (see "How the tools work"). |
@@ -164,7 +164,8 @@ Other rules of the toolbar:
 Click the menu bar icon. In mode drawing the overlay is above the menu bar, so change to click-through first, or stop drawing.
 
 - "Start drawing" or "Stop drawing", with its hotkey.
-- "Click through", with its hotkey. It is available while drawing is on. It has a check mark in click-through.
+- "Show toolbar", with the click-through hotkey, while drawing is off. It shows the toolbar with the pen paused. Click a tool to draw.
+- "Click through", with the same hotkey, while drawing is on. It has a check mark in click-through.
 - "Clear all". It also clears the Sticky marks that the app keeps while drawing is off.
 - "Settings…". It is not available in mode drawing. There, use the gear of the toolbar or Command-comma.
 - "Quit".
