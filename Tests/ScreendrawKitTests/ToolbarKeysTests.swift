@@ -86,14 +86,14 @@ import Testing
             }
         }
 
-        /// The keys that the settings model shows, in the order of the 18 actions.
+        /// The keys that the settings model shows, in the order of the 21 actions.
         var shownKeys: String {
             ToolbarAction.all.map { settings.toolbarKey($0) }.joined()
         }
     }
 
-    /// The table of D11, in the order of the toolbar.
-    static let startKeys = "wharot123456789fgs"
+    /// The table of D11 with the three new tools (row 2.61), in the order of the toolbar.
+    static let startKeys = "vwhdarotn123456789fgs"
     static let bothHotKeys: [HotKeyKind: HotKeyCombo] = [
         .draw: HotKeyKind.draw.startValue, .clickThrough: HotKeyKind.clickThrough.startValue,
     ]
@@ -106,7 +106,8 @@ import Testing
 
         // Each key of the table of D11 does the same as a click on its button.
         let table: [(key: String, button: String)] = [
-            ("w", "Pen"), ("h", "Highlight"), ("a", "Arrow"), ("r", "Rectangle"), ("o", "Ellipse"), ("t", "Text"),
+            ("v", "Select"), ("w", "Pen"), ("h", "Highlight"), ("d", "Line"), ("a", "Arrow"),
+            ("r", "Rectangle"), ("o", "Ellipse"), ("t", "Text"), ("n", "Stamp"),
             ("1", "Thin"), ("2", "Medium"), ("3", "Thick"),
             ("4", "Red"), ("5", "Amber"), ("6", "Green"), ("7", "Blue"), ("8", "Black"), ("9", "White"),
             ("f", "Fade"), ("g", "Hold"), ("s", "Sticky"),
@@ -176,7 +177,8 @@ import Testing
         let buttons = toolbar.subviews.compactMap { $0 as? ToolbarButton }
         let shown = Dictionary(uniqueKeysWithValues: buttons.map { ($0.name, $0.key) })
         #expect(shown == [
-            "Pen": "W", "Highlight": "H", "Arrow": "A", "Rectangle": "R", "Ellipse": "O", "Text": "T",
+            "Select": "V", "Pen": "W", "Highlight": "H", "Line": "D", "Arrow": "A",
+            "Rectangle": "R", "Ellipse": "O", "Text": "T", "Stamp": "N",
             "Undo": "⌘Z", "Redo": "⇧⌘Z", "Clear all": "⌫", "Close": "esc",
             "Thin": "1", "Medium": "2", "Thick": "3",
             "Red": "4", "Amber": "5", "Green": "6", "Blue": "7", "Black": "8", "White": "9",
@@ -421,13 +423,13 @@ import Testing
         let stage = Stage(isOn: false)
         #expect(ToolbarAction.groups.map { $0.title } == ["Tools", "Sizes", "Colours", "Stay"])
         #expect(ToolbarAction.groups.map { $0.actions.map { $0.name } } == [
-            ["Pen", "Highlight", "Arrow", "Rectangle", "Ellipse", "Text"],
+            ["Select", "Pen", "Highlight", "Line", "Arrow", "Rectangle", "Ellipse", "Text", "Stamp"],
             ["Thin", "Medium", "Thick"],
             ["Red", "Amber", "Green", "Blue", "Black", "White"],
             ["Fade", "Hold", "Sticky"],
         ])
-        #expect(ToolbarAction.all.count == 18 && Set(ToolbarAction.all).count == 18)
-        #expect(Set(ToolbarAction.all.map { $0.id }).count == 18)
+        #expect(ToolbarAction.all.count == 21 && Set(ToolbarAction.all).count == 21)
+        #expect(Set(ToolbarAction.all.map { $0.id }).count == 21)
         // Each action shows its key: the table of D11.
         #expect(stage.shownKeys == ToolbarKeysTests.startKeys)
         #expect(ToolbarAction.all.map { $0.startKey }.joined() == ToolbarKeysTests.startKeys)
@@ -581,7 +583,7 @@ import Testing
         // It is stored: a later start of the app has the two keys, in the window, on the toolbar and on the overlay.
         let restarted = Stage(defaults: stage.defaults, isOn: false)
         #expect(restarted.settings.toolbarKey(.tool(.arrow)) == "x" && restarted.settings.toolbarKey(.size(.thin)) == "0")
-        #expect(restarted.shownKeys == "whxrot023456789fgs")
+        #expect(restarted.shownKeys == "vwhdxrotn023456789fgs")
         restarted.controller.toggleDrawing()
         #expect(try restarted.toolbar.button(named: "Arrow").key == "X")
         #expect(try restarted.toolbar.button(named: "Thin").key == "0")
@@ -600,7 +602,7 @@ import Testing
         #expect(stage.record("0", for: .color(.white)))
         #expect(stage.record("h", for: .stay(.sticky)))
         #expect(stage.settings.toolbarKeyProblem != nil)
-        #expect(stage.shownKeys == "xhwrot123456780fgs")
+        #expect(stage.shownKeys == "vxhdwrotn123456780fgs")
         #expect(try stage.toolbar.button(named: "Pen").key == "X")
 
         // The button also stops a recorder that listens.
@@ -638,11 +640,11 @@ import Testing
 
         // Valid stored keys are used. An action with no stored key has its start key. A capital letter is its letter.
         defaults.set(["tool.pen": "x", "color.white": "0", "stay.fade": "K"], forKey: "toolbarKeys")
-        #expect(shown() == "xharot123456780kgs")
+        #expect(shown() == "vxhdarotn123456780kgs")
         #expect(keys.action(for: "x") == .tool(.pen) && keys.action(for: "k") == .stay(.fade))
         // A name that is not an action is not used.
         defaults.set(["tool.pen": "x", "tool.eraser": "e"], forKey: "toolbarKeys")
-        #expect(shown() == "xharot123456789fgs")
+        #expect(shown() == "vxhdarotn123456789fgs")
         #expect(keys.action(for: "e") == nil)
 
         let broken: [Any] = [
@@ -683,8 +685,8 @@ import Testing
         #expect(restarted.session.tool == .arrow)
         // The next valid change stores a full valid table.
         #expect(restarted.record("x", for: .tool(.arrow)))
-        #expect(restarted.shownKeys == "whxrot123456789fgs")
-        #expect((restarted.defaults.object(forKey: "toolbarKeys") as? [String: String])?.count == 18)
+        #expect(restarted.shownKeys == "vwhdxrotn123456789fgs")
+        #expect((restarted.defaults.object(forKey: "toolbarKeys") as? [String: String])?.count == 21)
     }
 
     @Test func row5_26_theRecorderOfAToolbarKeyPausesTheTwoHotKeysAndEscStopsIt() {

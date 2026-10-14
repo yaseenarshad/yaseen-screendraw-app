@@ -143,12 +143,15 @@ final class Toolbar: NSView {
 
     private static func symbolName(for tool: Tool) -> String {
         switch tool {
+        case .select: return "cursorarrow"
         case .pen: return "pencil"
         case .highlight: return "highlighter"
+        case .line: return "line.diagonal"
         case .arrow: return "arrow.up.right"
         case .rectangle: return "rectangle"
         case .ellipse: return "circle"
         case .text: return "textformat"
+        case .stamp: return "1.circle.fill"
         }
     }
 

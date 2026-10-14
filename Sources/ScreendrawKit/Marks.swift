@@ -2,18 +2,22 @@ import CoreGraphics
 
 // The model of the marks that the user draws on a screen. No drawing here: `MarkRenderer` draws.
 
-/// The six tools, in the order of the toolbar (D5).
+/// The nine tools, in the order of the toolbar (D5, D14, D15). Select draws no mark: it moves and
+/// changes the marks that exist. Each other tool is also the kind of a mark.
 enum Tool: String, Hashable, CaseIterable {
-    case pen, highlight, arrow, rectangle, ellipse, text
+    case select, pen, highlight, line, arrow, rectangle, ellipse, text, stamp
 
     var name: String {
         switch self {
+        case .select: return "Select"
         case .pen: return "Pen"
         case .highlight: return "Highlight"
+        case .line: return "Line"
         case .arrow: return "Arrow"
         case .rectangle: return "Rectangle"
         case .ellipse: return "Ellipse"
         case .text: return "Text"
+        case .stamp: return "Stamp"
         }
     }
 }
@@ -100,17 +104,46 @@ struct MarkStyle: Equatable {
         case .thick: return 24
         }
     }
+
+    /// The diameter of the circle of a Stamp, in points (row 2.57).
+    var stampDiameter: CGFloat {
+        switch size {
+        case .thin: return 22
+        case .medium: return 30
+        case .thick: return 40
+        }
+    }
+
+    /// How far the points of a mark stay from each edge of the screen, so the full mark is visible:
+    /// half the width of the line, or half a Stamp.
+    func edgeInset(for tool: Tool) -> CGFloat {
+        (tool == .stamp ? stampDiameter : lineWidth(for: tool)) / 2
+    }
+
+    /// A point of a mark, kept on a screen of `size`.
+    func pointOnScreen(_ point: CGPoint, for tool: Tool, in size: CGSize) -> CGPoint {
+        let inset = edgeInset(for: tool)
+        func clamp(_ value: CGFloat, _ length: CGFloat) -> CGFloat {
+            // A screen that is narrower than the line keeps the point in its middle.
+            let low = min(inset, length / 2)
+            return min(max(value, low), length - low)
+        }
+        return CGPoint(x: clamp(point.x, size.width), y: clamp(point.y, size.height))
+    }
 }
 
 /// One mark. Its points are in the points of its screen: the top-left of the screen is 0, 0.
 struct Mark: Equatable {
     let tool: Tool
     var style: MarkStyle
-    /// Rectangle, Ellipse and Arrow: the start and the end of the drag.
+    /// Rectangle, Ellipse, Line and Arrow: the start and the end of the drag.
     /// Pen and Highlight: the path of the pointer. Text: the top-left of the text.
+    /// Stamp: the middle of the circle.
     var points: [CGPoint]
     /// Only for Text.
     var text = ""
     /// Only for Text: a line breaks at this width.
     var wrapWidth: CGFloat = 0
+    /// Only for Stamp: the number in the circle.
+    var number = 0
 }

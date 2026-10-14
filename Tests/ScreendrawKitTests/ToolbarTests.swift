@@ -32,7 +32,11 @@ import Testing
 
     @Test func theButtonsAreInTheApprovedOrderInTwoRows() throws {
         let stage = Stage()
-        let firstRow = ["Pen", "Highlight", "Arrow", "Rectangle", "Ellipse", "Text", "Undo", "Redo", "Clear all", "Close"]
+        // The nine tools are in the order of row 2.50.
+        let firstRow = [
+            "Select", "Pen", "Highlight", "Line", "Arrow", "Rectangle", "Ellipse", "Text", "Stamp",
+            "Undo", "Redo", "Clear all", "Close",
+        ]
         // The switch is after the colours (YAZ-2791).
         let secondRow = ["Thin", "Medium", "Thick", "Red", "Amber", "Green", "Blue", "Black", "White", "Fade", "Hold", "Sticky"]
         let buttons = stage.toolbar.subviews.compactMap { $0 as? ToolbarButton }
@@ -55,7 +59,8 @@ import Testing
         // Close is at the right end. The free area before it is where a drag moves the toolbar.
         let close = try stage.button("Close").frame
         #expect(close.maxX == stage.toolbar.bounds.maxX - 4)
-        #expect(close.minX - (try stage.button("Clear all").frame.maxX) > 28)
+        // With nine tools, the free area is 23 points wide.
+        #expect(close.minX - (try stage.button("Clear all").frame.maxX) > 20)
     }
 
     @Test func row2_2_and3_1_theFirstStartShowsPenThickRedAndSticky() {
@@ -95,9 +100,9 @@ import Testing
             #expect(stage.session.stay == stay)
         }
         // One button of each group shows as selected. A click on the selected tool keeps it selected.
-        #expect(stage.selected == ["Text", "Thick", "White", "Sticky"])
-        try stage.press("Text")
-        #expect(stage.selected == ["Text", "Thick", "White", "Sticky"])
+        #expect(stage.selected == ["Stamp", "Thick", "White", "Sticky"])
+        try stage.press("Stamp")
+        #expect(stage.selected == ["Stamp", "Thick", "White", "Sticky"])
     }
 
     @Test func row2_11_and2_12_theUndoAndRedoButtons() throws {
