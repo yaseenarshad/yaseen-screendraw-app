@@ -55,14 +55,17 @@ struct DrawPrefs {
     var toolbarPlace: ToolbarPlace? {
         get {
             guard let stored = defaults.object(forKey: Key.toolbarPlace) as? [String: Any],
-                  let display = (stored["display"] as? Int).flatMap(CGDirectDisplayID.init(exactly:)),
+                  let display = (stored["display"] as? Int).flatMap({ CGDirectDisplayID(exactly: $0) }),
                   let x = stored["x"] as? Double, let y = stored["y"] as? Double,
                   let form = (stored["form"] as? String).flatMap(ToolbarForm.init(rawValue:))
             else { return nil }
             return ToolbarPlace(displayID: display, origin: CGPoint(x: x, y: y), form: form)
         }
         nonmutating set {
-            guard let place = newValue else { return defaults.removeObject(forKey: Key.toolbarPlace) }
+            guard let place = newValue else {
+                defaults.removeObject(forKey: Key.toolbarPlace)
+                return
+            }
             defaults.set([
                 "display": Int(place.displayID), "x": Double(place.origin.x), "y": Double(place.origin.y),
                 "form": place.form.rawValue,

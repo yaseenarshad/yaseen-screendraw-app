@@ -140,11 +140,12 @@ final class DrawController: DrawControlling {
     /// place that is fully in the visible part of its screen, it goes to the bottom centre of
     /// the screen that has the pointer, as a row (rows 2.108, 2.109).
     private func placeToolbar(_ panel: ToolbarPanel) {
-        let size = { panel.toolbarView.layout(in: $0).size }
+        let size: (ToolbarForm) -> CGSize = { panel.toolbarView.layout(in: $0).size }
         if let place = prefs.toolbarPlace, let screen = shownScreens.first(where: { $0.display.id == place.displayID }) {
             let origin = CGPoint(x: screen.frame.minX + place.origin.x, y: screen.frame.minY + place.origin.y)
             if screen.visibleFrame.contains(CGRect(origin: origin, size: size(place.form))) {
-                return panel.place(place.form, at: origin)
+                panel.place(place.form, at: origin)
+                return
             }
         }
         guard let visible = pointerScreen?.visibleFrame else { return }
