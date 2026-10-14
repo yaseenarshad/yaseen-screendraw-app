@@ -176,8 +176,8 @@ final class DrawSession {
     /// The new mark of the drag in progress, if it is on the given screen. With Shift, it is
     /// the straight form of the mark (rows 2.53 to 2.55).
     func draft(on displayID: CGDirectDisplayID) -> Mark? {
-        guard let drag = drag, drag.display.id == displayID, case .draw = drag.kind else { return nil }
-        return shapedDraft
+        guard let drag = drag, drag.display.id == displayID, case .draw = drag.kind, let mark = draft else { return nil }
+        return shaped(mark, on: drag.display)
     }
 
     /// Select: the mark that a drag moves or changes now, as it shows during the drag, if it is
@@ -350,14 +350,15 @@ final class DrawSession {
         case .draw:
             guard let mark = draft else { return }
             lastActivity = now()
-            let next = mark.style.pointOnScreen(point, for: mark.tool, in: size)
             switch mark.tool {
             case .pen, .highlight:
+                let next = mark.style.pointOnScreen(point, for: mark.tool, in: size)
                 guard mark.points.last != next else { return }
                 draft?.points.append(next)
             default:
-                guard mark.points.count < 2 || mark.points[1] != next else { return }
-                draft?.points = [mark.points[0], next]
+                // The draft has the pointer as it is, also off the screen. `shaped` keeps the mark on the screen.
+                guard mark.points.count < 2 || mark.points[1] != point else { return }
+                draft?.points = [mark.points[0], point]
             }
             draftChanged()
         case .move(let placed), .resize(let placed, _, _):
@@ -677,7 +678,7 @@ final class DrawSession {
         case .draw(let stay):
             lastActivity = now()
             draftRevision += 1
-            if let mark = mark.map({ straight($0, on: drag.display) }), DrawSession.isLargeEnough(mark) {
+            if let mark = mark.map({ shaped($0, on: drag.display) }), DrawSession.isLargeEnough(mark) {
                 add(mark, on: drag.display.id, stay: stay)
                 marksChanged()
             } else {
@@ -692,49 +693,55 @@ final class DrawSession {
         }
     }
 
-    /// The new mark of the drag as it shows: with Shift, its straight form.
-    private var shapedDraft: Mark? {
-        guard let drag = drag, let mark = draft else { return nil }
-        return straight(mark, on: drag.display)
-    }
-
+    /// The new mark of a drag as it shows, from the draft, which has each point of the pointer.
+    /// The mark stays on its screen.
+    ///
     /// With Shift, a Pen or Highlight mark is one straight line from the start to the pointer
     /// (row 2.53), the angle of a Line or an Arrow goes in steps of 45 degrees (row 2.54), and a
-    /// Rectangle or an Ellipse is a square or a circle (row 2.55). The mark stays on its screen.
-    /// The draft keeps each point of the pointer, so the mark changes back when Shift is released.
-    private func straight(_ mark: Mark, on display: DrawDisplay) -> Mark {
-        guard isShiftDown, mark.points.count > 1, let start = mark.points.first, let end = mark.points.last else { return mark }
-        let dx = end.x - start.x, dy = end.y - start.y
-        // The room from the start to the edges of the screen, in the direction of the pointer.
-        let low = mark.style.pointOnScreen(.zero, for: mark.tool, in: display.size)
-        let roomX = dx < 0 ? start.x - low.x : display.size.width - low.x - start.x
-        let roomY = dy < 0 ? start.y - low.y : display.size.height - low.y - start.y
-        var straight = mark
-        switch mark.tool {
+    /// Rectangle or an Ellipse is a square or a circle (row 2.55). The draft does not change, so
+    /// the mark changes back when Shift is released (row 2.56).
+    private func shaped(_ draft: Mark, on display: DrawDisplay) -> Mark {
+        guard draft.points.count > 1, let start = draft.points.first, let pointer = draft.points.last else { return draft }
+        var mark = draft
+        switch draft.tool {
         case .pen, .highlight:
-            straight.points = [start, end]
-        case .line, .arrow:
-            // The eight directions, clockwise from "to the right". The screen has y going down.
-            let diagonal = CGFloat(0.5).squareRoot()
-            let directions: [(x: CGFloat, y: CGFloat)] = [
-                (1, 0), (diagonal, diagonal), (0, 1), (-diagonal, diagonal),
-                (-1, 0), (-diagonal, -diagonal), (0, -1), (diagonal, -diagonal),
-            ]
-            let step = Int((atan2(dy, dx) / (.pi / 4)).rounded())
-            let direction = directions[(step + 8) % 8]
-            // The line keeps its length. At an edge of the screen it gets shorter, and its angle stays.
-            var length = hypot(dx, dy)
-            if direction.x != 0 { length = min(length, roomX / abs(direction.x)) }
-            if direction.y != 0 { length = min(length, roomY / abs(direction.y)) }
-            straight.points = [start, CGPoint(x: start.x + direction.x * length, y: start.y + direction.y * length)]
-        case .rectangle, .ellipse:
-            // The longer side of the drag is the side of the square.
-            let side = min(max(abs(dx), abs(dy)), roomX, roomY)
-            straight.points = [start, CGPoint(x: start.x + (dx < 0 ? -side : side), y: start.y + (dy < 0 ? -side : side))]
+            if isShiftDown { mark.points = [start, pointer] }
+        case .line, .arrow, .rectangle, .ellipse:
+            let end = isShiftDown
+                ? DrawSession.straightEnd(of: draft, from: start, to: pointer, on: display)
+                : draft.style.pointOnScreen(pointer, for: draft.tool, in: display.size)
+            mark.points = [start, end]
         case .select, .text, .stamp:
             break
         }
-        return straight
+        return mark
+    }
+
+    /// The end of a Line, an Arrow, a Rectangle or an Ellipse that Shift makes straight.
+    private static func straightEnd(of mark: Mark, from start: CGPoint, to pointer: CGPoint, on display: DrawDisplay) -> CGPoint {
+        let dx = pointer.x - start.x, dy = pointer.y - start.y
+        // The room from the start to the edges of the screen, in the direction of the pointer.
+        let inset = mark.style.edgeInset(for: mark.tool)
+        let roomX = max(dx < 0 ? start.x - inset : display.size.width - inset - start.x, 0)
+        let roomY = max(dy < 0 ? start.y - inset : display.size.height - inset - start.y, 0)
+        if mark.tool == .rectangle || mark.tool == .ellipse {
+            // The longer side of the drag is the side of the square. At an edge of the screen the
+            // square stops, and it stays a square.
+            let side = min(max(abs(dx), abs(dy)), roomX, roomY)
+            return CGPoint(x: start.x + (dx < 0 ? -side : side), y: start.y + (dy < 0 ? -side : side))
+        }
+        // The eight directions, clockwise from "to the right". The screen has y going down.
+        let diagonal = CGFloat(0.5).squareRoot()
+        let directions: [(x: CGFloat, y: CGFloat)] = [
+            (1, 0), (diagonal, diagonal), (0, 1), (-diagonal, diagonal),
+            (-1, 0), (-diagonal, -diagonal), (0, -1), (diagonal, -diagonal),
+        ]
+        let direction = directions[(Int((atan2(dy, dx) / (.pi / 4)).rounded()) + 8) % 8]
+        // The line keeps the length of the drag. At an edge of the screen it gets shorter, and its angle stays.
+        var length = hypot(dx, dy)
+        if direction.x != 0 { length = min(length, roomX / abs(direction.x)) }
+        if direction.y != 0 { length = min(length, roomY / abs(direction.y)) }
+        return CGPoint(x: start.x + direction.x * length, y: start.y + direction.y * length)
     }
 
     /// The number of the next stamp: the highest number of the stamps that exist on all screens,
