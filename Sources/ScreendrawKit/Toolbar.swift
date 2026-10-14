@@ -402,12 +402,13 @@ final class ToolbarButton: NSButton {
 
     // MARK: The key
 
-    /// The key is small and grey, as in the draw app (row 2.32). It is lighter on a selected
-    /// button, and weaker on a button that is not available.
+    /// The key is small, thin and faint (row 2.32). It is a hint for the eye that looks for it, and
+    /// it must not compete with the pictures of the buttons. The hover tip shows the key clearly.
+    /// It is a little lighter on a selected button, and weaker on a button that is not available.
     var keyText: NSAttributedString {
-        let strength: CGFloat = !isEnabled ? 0.3 : (isOn ? 0.9 : 0.62)
+        let strength: CGFloat = !isEnabled ? 0.16 : (isOn ? 0.5 : 0.3)
         return NSAttributedString(string: key, attributes: [
-            .font: NSFont.systemFont(ofSize: 8, weight: .semibold),
+            .font: NSFont.systemFont(ofSize: 8, weight: .regular),
             .foregroundColor: NSColor(white: 1, alpha: strength),
         ])
     }

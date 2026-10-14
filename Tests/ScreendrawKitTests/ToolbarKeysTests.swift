@@ -186,14 +186,16 @@ import Testing
             "Settings": "⌘,",
         ])
 
-        // The key is small and grey. It is brighter on a selected button and weaker on a button that is not available.
+        // The key is small, thin and faint, so it does not compete with the pictures of the buttons.
+        // It is brighter on a selected button and weaker on a button that is not available.
         let pen = try toolbar.button(named: "Pen"), arrow = try toolbar.button(named: "Arrow"), undo = try toolbar.button(named: "Undo")
         func strength(_ button: ToolbarButton) -> CGFloat? {
             (button.keyText.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor)?.alphaComponent
         }
-        #expect(arrow.keyText.attribute(.font, at: 0, effectiveRange: nil) as? NSFont == NSFont.systemFont(ofSize: 8, weight: .semibold))
+        #expect(arrow.keyText.attribute(.font, at: 0, effectiveRange: nil) as? NSFont == NSFont.systemFont(ofSize: 8, weight: .regular))
         #expect(pen.isOn && !arrow.isOn && !undo.isEnabled)
-        #expect(try #require(strength(arrow)) > 0.5)
+        // Faint, but still there for the eye that looks for it.
+        #expect(try #require(strength(arrow)) <= 0.35 && #require(strength(arrow)) >= 0.25)
         #expect(try #require(strength(pen)) > #require(strength(arrow)))
         #expect(try #require(strength(undo)) < #require(strength(arrow)))
 
