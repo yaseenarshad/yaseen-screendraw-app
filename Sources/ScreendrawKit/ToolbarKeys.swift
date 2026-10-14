@@ -1,7 +1,7 @@
 import AppKit
 
-/// The 18 actions of the toolbar that have a key (D11): the six tools, the three sizes, the six
-/// colours and the three values of the switch. Undo, Redo, Clear all and Close have fixed keys.
+/// The 21 actions of the toolbar that have a key (D11, row 2.61): the nine tools, the three sizes,
+/// the six colours and the three values of the switch. Undo, Redo, Clear all and Close have fixed keys.
 enum ToolbarAction: Hashable {
     case tool(Tool)
     case size(MarkSize)
@@ -38,16 +38,19 @@ enum ToolbarAction: Hashable {
         }
     }
 
-    /// The key at the start (D11): the letters of the draw app for the tools, 1 to 3 for the
-    /// sizes, 4 to 9 for the colours, and F, G, S for the switch.
+    /// The key at the start (D11, D14, D15): the letters of the draw app for the tools, 1 to 3
+    /// for the sizes, 4 to 9 for the colours, and F, G, S for the switch.
     var startKey: String {
         switch self {
+        case .tool(.select): return "v"
         case .tool(.pen): return "w"
         case .tool(.highlight): return "h"
+        case .tool(.line): return "d"
         case .tool(.arrow): return "a"
         case .tool(.rectangle): return "r"
         case .tool(.ellipse): return "o"
         case .tool(.text): return "t"
+        case .tool(.stamp): return "n"
         case .size(.thin): return "1"
         case .size(.medium): return "2"
         case .size(.thick): return "3"
@@ -76,6 +79,8 @@ enum ToolbarAction: Hashable {
 struct ToolbarKeys {
     /// The second key of the Pen, as in the draw app. It works only while no action has this key (row 2.31).
     static let secondPenKey = "p"
+    /// The second key of the Line, as in the draw app. It works only while no action has this key (row 2.51).
+    static let secondLineKey = "l"
     private static let defaultsKey = "toolbarKeys"
 
     let defaults: UserDefaults
@@ -115,7 +120,11 @@ struct ToolbarKeys {
     func action(for key: String) -> ToolbarAction? {
         let keys = all
         if let action = ToolbarAction.all.first(where: { keys[$0] == key }) { return action }
-        return key == ToolbarKeys.secondPenKey ? .tool(.pen) : nil
+        switch key {
+        case ToolbarKeys.secondPenKey: return .tool(.pen)
+        case ToolbarKeys.secondLineKey: return .tool(.line)
+        default: return nil
+        }
     }
 
     /// Stores a new key for one action. The caller makes sure that the key is valid and that no

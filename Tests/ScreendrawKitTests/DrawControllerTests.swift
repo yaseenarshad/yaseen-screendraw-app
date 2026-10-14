@@ -59,7 +59,7 @@ import Testing
         #expect(controller.overlays.map { $0.frame } == [Screens.leftScreen.frame, Screens.rightScreen.frame])
         #expect(controller.overlays.map { $0.overlayView.frame.size } == [Screens.left.size, Screens.right.size])
         #expect(controller.toolbarPanel != nil)
-        #expect(stage.session.pointerShape == .crosshair)
+        #expect(stage.session.pointerShape(at: .zero, on: Screens.left.id) == .crosshair)
         #expect(stage.nothingIsOnAScreen)
     }
 

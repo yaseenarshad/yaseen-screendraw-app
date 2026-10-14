@@ -67,9 +67,9 @@ import Testing
             #expect(stage.session.stay == stay)
         }
         // One button of each group shows as selected. A click on the selected tool keeps it selected.
-        #expect(stage.selected == ["Text", "Thick", "White", "Sticky"])
-        try stage.press("Text")
-        #expect(stage.selected == ["Text", "Thick", "White", "Sticky"])
+        #expect(stage.selected == ["Stamp", "Thick", "White", "Sticky"])
+        try stage.press("Stamp")
+        #expect(stage.selected == ["Stamp", "Thick", "White", "Sticky"])
     }
 
     @Test func row2_11_and2_12_theUndoAndRedoButtons() throws {

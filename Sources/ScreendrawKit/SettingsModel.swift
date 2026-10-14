@@ -4,7 +4,7 @@ import Carbon.HIToolbox
 /// The state and the rules of the settings window, with no window and no view.
 ///
 /// The model owns the changes of the settings: it registers the two hotkeys, stores them, stores
-/// the keys of the toolbar, and asks macOS for "open at login". The app and the window only call it.
+/// the keys of the toolbar and the seconds of Fade and Hold, and asks macOS for "open at login". The app and the window only call it.
 /// Thus a test proves the rules.
 @MainActor
 final class SettingsModel: ObservableObject {
@@ -12,6 +12,8 @@ final class SettingsModel: ObservableObject {
     static let sameKeyText = "The two hotkeys must be different."
     static let refusedText = "macOS refused this hotkey. A different app can have it."
     static let toolbarKeyNotValidText = "A toolbar key is one letter, digit or punctuation mark, with no ⌘, ⌃ or ⌥."
+    static let fadeSecondsNotValidText = "Fade seconds must be a whole number from 1 to 60."
+    static let holdSecondsNotValidText = "Hold seconds must be a whole number from 1 to 60."
     static let loginItemNotAvailableText = "Open at login works only in the installed app."
     static let loginItemNotChangedText = "macOS did not change this setting. Look at Login Items in System Settings."
 
@@ -26,6 +28,12 @@ final class SettingsModel: ObservableObject {
     @Published private(set) var recordingToolbarKey: ToolbarAction?
     /// The red line below the toolbar keys.
     @Published private(set) var toolbarKeyProblem: String?
+    /// A Fade mark is gone this many seconds after it is finished (D12).
+    @Published private(set) var fadeSeconds: Int
+    /// The Hold marks stay this many seconds after the last drawing activity (D12).
+    @Published private(set) var holdSeconds: Int
+    /// The red line below the two seconds fields.
+    @Published private(set) var secondsProblem: String?
     /// The real state from macOS, not a stored value.
     @Published private(set) var openAtLogin = false
     /// The red line below the switch.
@@ -44,6 +52,8 @@ final class SettingsModel: ObservableObject {
         self.loginItem = loginItem
         combos = [.draw: store.hotKey(.draw), .clickThrough: store.hotKey(.clickThrough)]
         toolbarKeys = store.toolbarKeys.all
+        fadeSeconds = store.drawPrefs.fadeSeconds
+        holdSeconds = store.drawPrefs.holdSeconds
         refreshOpenAtLogin()
     }
 
@@ -176,6 +186,38 @@ final class SettingsModel: ObservableObject {
         store.toolbarKeys.reset()
         toolbarKeys = store.toolbarKeys.all
         toolbarKeyProblem = nil
+    }
+
+    // MARK: The seconds of Fade and Hold
+
+    /// The field "Fade seconds" has a new text. A whole number from 1 to 60 is stored, and the
+    /// drawing part uses it for the next Fade mark (rows 3.21 and 3.25). Each other text is
+    /// refused: the old value stays, and the red line tells the rule (row 3.22).
+    func setFadeSeconds(_ text: String) {
+        if let seconds = SettingsModel.seconds(from: text) {
+            store.drawPrefs.fadeSeconds = seconds
+            fadeSeconds = seconds
+            secondsProblem = nil
+        } else {
+            secondsProblem = SettingsModel.fadeSecondsNotValidText
+        }
+    }
+
+    /// The field "Hold seconds" has a new text. The rules of `setFadeSeconds` apply. The Hold
+    /// marks that are on the screen use the new value at once (row 3.25).
+    func setHoldSeconds(_ text: String) {
+        if let seconds = SettingsModel.seconds(from: text) {
+            store.drawPrefs.holdSeconds = seconds
+            holdSeconds = seconds
+            secondsProblem = nil
+        } else {
+            secondsProblem = SettingsModel.holdSecondsNotValidText
+        }
+    }
+
+    /// The whole number from 1 to 60 that a text gives. `nil` for an empty text, 0, 61 or a letter.
+    private static func seconds(from text: String) -> Int? {
+        Int(text.trimmingCharacters(in: .whitespaces)).flatMap { DrawPrefs.secondsRange.contains($0) ? $0 : nil }
     }
 
     // MARK: Open at login

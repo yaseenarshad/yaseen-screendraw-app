@@ -17,7 +17,7 @@ import Testing
         session.start(displays: [Screens.left, Screens.right])
         #expect(session.mode == .drawing)
         #expect(session.displays == [Screens.left, Screens.right])
-        #expect(session.pointerShape == .crosshair)
+        #expect(session.pointerShape(at: .zero, on: Screens.left.id) == .crosshair)
         #expect(changes == 1)
     }
 
@@ -157,7 +157,7 @@ import Testing
         let session = Fixture().session
         #expect(session.tool == .pen)
         #expect(session.style == MarkStyle(color: .red, size: .thick))
-        #expect(Tool.allCases == [.pen, .highlight, .arrow, .rectangle, .ellipse, .text])
+        #expect(Tool.allCases == [.select, .pen, .highlight, .line, .arrow, .rectangle, .ellipse, .text, .stamp])
         #expect(MarkSize.allCases == [.thin, .medium, .thick])
         #expect(MarkColor.allCases == [.red, .amber, .green, .blue, .black, .white])
     }
@@ -227,7 +227,7 @@ import Testing
     @Test func row2_8_aClickOpensATextAndEnterFinishesIt() {
         let session = Fixture().session
         session.selectTool(.text)
-        #expect(session.pointerShape == .iBeam)
+        #expect(session.pointerShape(at: .zero, on: Screens.left.id) == .iBeam)
         session.click(at: point(200, 150))
         // The click is the middle of the first line. Thick is 24 points, so a line is 30 points.
         let edit = session.textEdit
