@@ -2,8 +2,8 @@ import AppKit
 import Carbon.HIToolbox
 import SwiftUI
 
-/// The rows of the settings window (D7, D11, D12): the two hotkeys, "Open at login", the seconds
-/// of Fade and Hold, and the keys of the toolbar.
+/// The rows of the settings window (D7, D11, D12, D20): the two hotkeys, "Open at login", the
+/// seconds of Fade and Hold, the switch of Esc, and the keys of the toolbar.
 struct SettingsView: View {
     @ObservedObject var model: SettingsModel
 
@@ -71,9 +71,10 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: The seconds of Fade and Hold
+    // MARK: The part "Marks"
 
-    /// The two number fields of the part "Marks" (row 3.20), and the red line of a refused value (row 3.22).
+    /// The two number fields (row 3.20), the red line of a refused value (row 3.22), and the
+    /// switch of Esc (row 4.36).
     private var marks: some View {
         VStack(alignment: .leading, spacing: 6) {
             // The two fields are in one line, so the window stays low (row 5.27).
@@ -92,14 +93,21 @@ struct SettingsView: View {
             }
             Text("How long a Fade mark and the Hold marks stay: 1 to 60 seconds.")
                 .font(.callout).foregroundStyle(.secondary)
+            Toggle("Marks stay visible after Esc", isOn: Binding(
+                get: { model.marksStayAfterEsc },
+                set: { model.setMarksStayAfterEsc($0) }
+            ))
+            .toggleStyle(.switch)
         }
     }
 
     // MARK: The keys of the toolbar
 
     /// The 21 keys in four groups, three in a line, so the window stays low (rows 5.20 and 5.27).
+    /// The groups are 6 points apart: with the switch of Esc in the part "Marks", the form with
+    /// one short red line is still lower than the 610 points where it starts to scroll.
     private var toolbarKeys: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             ForEach(ToolbarAction.groups, id: \.title) { group in
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(group.title)
