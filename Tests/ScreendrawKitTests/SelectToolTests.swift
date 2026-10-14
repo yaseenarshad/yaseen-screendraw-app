@@ -32,7 +32,7 @@ import Testing
         // Its picture is the arrow pointer of the system, and its name shows on hover (sister row 1).
         #expect(NSImage(systemSymbolName: "cursorarrow", accessibilityDescription: nil) != nil)
         #expect(select.image?.accessibilityDescription == "Select")
-        #expect(select.toolTip == "Select" && select.accessibilityLabel() == "Select")
+        #expect(select.name == "Select" && select.accessibilityLabel() == "Select")
 
         // Its key at the start is V, and the button shows it.
         #expect(ToolbarAction.tool(.select).startKey == "v" && select.key == "V")
