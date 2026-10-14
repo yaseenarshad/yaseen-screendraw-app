@@ -1,7 +1,16 @@
+import CoreGraphics
 import Foundation
 
-/// The four small values that the drawing part remembers: the tool, the size, the colour and
-/// the stay mode. Nothing else of the drawing part goes to the disk. No mark is saved.
+/// Where the user put the toolbar (D16): its screen, its place on that screen, and its form.
+struct ToolbarPlace: Equatable {
+    let displayID: CGDirectDisplayID
+    /// The bottom-left corner of the toolbar, from the bottom-left corner of its screen.
+    let origin: CGPoint
+    let form: ToolbarForm
+}
+
+/// The small values that the drawing part remembers: the tool, the size, the colour, the stay
+/// mode, and the place of the toolbar. Nothing else of the drawing part goes to the disk. No mark is saved.
 ///
 /// The `UserDefaults` is a parameter, so a test gives one that keeps its values in memory.
 /// A value that is missing or broken gives the value of the first start. The store never fails.
@@ -12,6 +21,7 @@ struct DrawPrefs {
         static let size = "drawSize"
         static let color = "drawColor"
         static let stay = "drawStayMode"
+        static let toolbarPlace = "toolbarPlace"
     }
 
     let defaults: UserDefaults
@@ -38,6 +48,26 @@ struct DrawPrefs {
     var stay: StayMode {
         get { read(Key.stay) ?? .sticky }
         nonmutating set { defaults.set(newValue.rawValue, forKey: Key.stay) }
+    }
+
+    /// The place that the user gave the toolbar with a drag (row 2.107). `nil` before the first
+    /// drag, and for a value that is broken. The user of the place checks it against the screens.
+    var toolbarPlace: ToolbarPlace? {
+        get {
+            guard let stored = defaults.object(forKey: Key.toolbarPlace) as? [String: Any],
+                  let display = (stored["display"] as? Int).flatMap(CGDirectDisplayID.init(exactly:)),
+                  let x = stored["x"] as? Double, let y = stored["y"] as? Double,
+                  let form = (stored["form"] as? String).flatMap(ToolbarForm.init(rawValue:))
+            else { return nil }
+            return ToolbarPlace(displayID: display, origin: CGPoint(x: x, y: y), form: form)
+        }
+        nonmutating set {
+            guard let place = newValue else { return defaults.removeObject(forKey: Key.toolbarPlace) }
+            defaults.set([
+                "display": Int(place.displayID), "x": Double(place.origin.x), "y": Double(place.origin.y),
+                "form": place.form.rawValue,
+            ] as [String: Any], forKey: Key.toolbarPlace)
+        }
     }
 
     private func read<Value: RawRepresentable>(_ key: String) -> Value? where Value.RawValue == String {

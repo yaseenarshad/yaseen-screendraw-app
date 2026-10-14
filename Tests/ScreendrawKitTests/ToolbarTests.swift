@@ -30,34 +30,6 @@ import Testing
         }
     }
 
-    @Test func theButtonsAreInTheApprovedOrderInTwoRows() throws {
-        let stage = Stage()
-        let firstRow = ["Pen", "Highlight", "Arrow", "Rectangle", "Ellipse", "Text", "Undo", "Redo", "Clear all", "Close"]
-        // The switch is after the colours (YAZ-2791).
-        let secondRow = ["Thin", "Medium", "Thick", "Red", "Amber", "Green", "Blue", "Black", "White", "Fade", "Hold", "Sticky"]
-        let buttons = stage.toolbar.subviews.compactMap { $0 as? ToolbarButton }
-        #expect(buttons.count == firstRow.count + secondRow.count)
-
-        for row in [firstRow, secondRow] {
-            let frames = try row.map { try stage.button($0).frame }
-            #expect(Set(frames.map { $0.minY }).count == 1)
-            for (left, right) in zip(frames, frames.dropFirst()) {
-                #expect(left.maxX <= right.minX, "the buttons of a row do not overlap")
-            }
-        }
-        // The toolbar is flipped: the row of the tools is above the row of the sizes.
-        #expect(try stage.button("Pen").frame.minY < stage.button("Thin").frame.minY)
-        // Each button is inside the toolbar.
-        for button in buttons {
-            #expect(stage.toolbar.bounds.contains(button.frame), "the button \(button.name)")
-            #expect(button.accessibilityLabel() == button.name)
-        }
-        // Close is at the right end. The free area before it is where a drag moves the toolbar.
-        let close = try stage.button("Close").frame
-        #expect(close.maxX == stage.toolbar.bounds.maxX - 4)
-        #expect(close.minX - (try stage.button("Clear all").frame.maxX) > 28)
-    }
-
     @Test func row2_2_and3_1_theFirstStartShowsPenThickRedAndSticky() {
         let stage = Stage()
         #expect(stage.selected == ["Pen", "Thick", "Red", "Sticky"])

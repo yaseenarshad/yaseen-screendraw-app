@@ -181,6 +181,7 @@ import Testing
             "Thin": "1", "Medium": "2", "Thick": "3",
             "Red": "4", "Amber": "5", "Green": "6", "Blue": "7", "Black": "8", "White": "9",
             "Fade": "F", "Hold": "G", "Sticky": "S",
+            "Settings": "⌘,",
         ])
 
         // The key is small and grey. It is brighter on a selected button and weaker on a button that is not available.

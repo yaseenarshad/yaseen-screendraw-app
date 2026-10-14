@@ -32,7 +32,7 @@ import Testing
 
         /// A click on the gear of the toolbar.
         func pressTheGear() throws {
-            session.openSettings()
+            try #require(controller.toolbarPanel).toolbarView.press("Settings")
         }
 
         /// The overlay gets Command-comma. Nothing presses a key: the test gives the event to the view.
@@ -47,6 +47,36 @@ import Testing
         /// The menu row "Click through" has its check mark.
         var menuShowsClickThrough: Bool {
             app.statusMenu.menu.item(withTitle: "Click through")?.state == .on
+        }
+    }
+
+    @Test func row2_40_theGearIsImmediatelyBeforeCloseAndShowsItsKey() throws {
+        let stage = Stage()
+        stage.controller.toggleDrawing()
+        let toolbar = try #require(stage.controller.toolbarPanel).toolbarView
+        let gear = try toolbar.button(named: "Settings")
+        #expect(gear.accessibilityLabel() == "Settings")
+        #expect(gear.image?.accessibilityDescription == "Settings" && gear.imagePosition == .imageOnly)
+        // The picture is the gear of macOS. It is not the first letter of the name.
+        #expect(NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil) != nil)
+        // The key is in the bottom right corner, as on each other button (row 2.32).
+        #expect(gear.key == "⌘,")
+        #expect(gear.bounds.contains(gear.keyFrame) && gear.keyFrame.minY > gear.bounds.midY)
+        #expect(gear.bounds.maxX - gear.keyFrame.maxX <= 3 && gear.bounds.maxY - gear.keyFrame.maxY <= 3)
+        #expect(gear.isEnabled && gear.acceptsFirstMouse(for: nil) && gear.refusesFirstResponder)
+
+        // Immediately before Close, in each form of the toolbar.
+        for form in ToolbarForm.allCases {
+            toolbar.form = form
+            let names = toolbar.subviews.compactMap { $0 as? ToolbarButton }.map { $0.name }
+            #expect(names.suffix(2) == ["Settings", "Close"])
+            let close = try toolbar.button(named: "Close")
+            // The two are neighbours: 2 points are between them, as in a group.
+            if form.isVertical {
+                #expect(close.frame.minY - gear.frame.maxY == 2 && close.frame.minX == gear.frame.minX, "\(form)")
+            } else {
+                #expect(close.frame.minX - gear.frame.maxX == 2 && close.frame.minY == gear.frame.minY, "\(form)")
+            }
         }
     }
 

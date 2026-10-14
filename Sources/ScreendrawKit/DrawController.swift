@@ -16,6 +16,7 @@ final class DrawController: DrawControlling {
     }
 
     let session: DrawSession
+    private let prefs: DrawPrefs
     private let screens: () -> [OverlayScreen]
     private let pointer: () -> CGPoint
     private var shownMode = DrawMode.off
@@ -23,6 +24,8 @@ final class DrawController: DrawControlling {
     /// One for each screen while drawing is on. Empty while the mode is off.
     private(set) var overlays: [OverlayWindow] = []
     private(set) var toolbarPanel: ToolbarPanel?
+    /// Exists only while the tip of a toolbar button shows.
+    private(set) var tipPanel: ToolbarTip?
     /// Exists only while a Fade or Hold mark exists.
     private(set) var timer: Timer?
     /// Exists only while drawing is on.
@@ -47,7 +50,8 @@ final class DrawController: DrawControlling {
         screens: @escaping () -> [OverlayScreen],
         pointer: @escaping () -> CGPoint
     ) {
-        session = DrawSession(prefs: DrawPrefs(defaults: defaults), now: now)
+        prefs = DrawPrefs(defaults: defaults)
+        session = DrawSession(prefs: prefs, now: now)
         self.screens = screens
         self.pointer = pointer
         session.onChange = { [weak self] in self?.sessionChanged() }
@@ -109,7 +113,13 @@ final class DrawController: DrawControlling {
     /// The toolbar, the observer of the screens and the observer of the settings. `showMode` makes the overlays.
     private func openWindows() {
         let panel = ToolbarPanel(session: session)
-        moveToBottomCentre(panel)
+        panel.toolbarView.pointer = pointer
+        panel.toolbarView.onDrop = { [weak self, weak panel] in
+            // A drag can end after its toolbar is closed. Then there is nothing to place.
+            if let self = self, let panel = panel, panel === self.toolbarPanel { self.toolbarDropped(panel) }
+        }
+        panel.toolbarView.onTip = { [weak self] in self?.showTip(of: $0) }
+        placeToolbar(panel)
         toolbarPanel = panel
         screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
@@ -124,10 +134,58 @@ final class DrawController: DrawControlling {
         }
     }
 
-    /// The toolbar shows at the bottom centre of the screen that has the pointer.
-    private func moveToBottomCentre(_ panel: ToolbarPanel) {
+    // MARK: The place of the toolbar
+
+    /// The toolbar goes where the user put it, in the form of that place (row 2.107). Without a
+    /// place that is fully in the visible part of its screen, it goes to the bottom centre of
+    /// the screen that has the pointer, as a row (rows 2.108, 2.109).
+    private func placeToolbar(_ panel: ToolbarPanel) {
+        let size = { panel.toolbarView.layout(in: $0).size }
+        if let place = prefs.toolbarPlace, let screen = shownScreens.first(where: { $0.display.id == place.displayID }) {
+            let origin = CGPoint(x: screen.frame.minX + place.origin.x, y: screen.frame.minY + place.origin.y)
+            if screen.visibleFrame.contains(CGRect(origin: origin, size: size(place.form))) {
+                return panel.place(place.form, at: origin)
+            }
+        }
+        guard let visible = pointerScreen?.visibleFrame else { return }
+        let form = ToolbarForm.fitting(vertical: false, in: visible, size: size)
+        panel.place(form, at: Toolbar.origin(for: size(form), on: visible))
+    }
+
+    /// The user released the toolbar after a drag. Only now the form can change (row 2.105).
+    /// The rules use the screen that has the pointer at the release (row 2.113).
+    private func toolbarDropped(_ panel: ToolbarPanel) {
         guard let screen = pointerScreen else { return }
-        panel.setFrameOrigin(Toolbar.origin(for: panel.frame.size, on: screen.visibleFrame))
+        let spot = ToolbarLayout.drop(
+            panel.frame, pointer: pointer(), on: screen.visibleFrame, size: { panel.toolbarView.layout(in: $0).size }
+        )
+        panel.place(spot.form, at: spot.frame.origin)
+        prefs.toolbarPlace = ToolbarPlace(
+            displayID: screen.display.id,
+            origin: CGPoint(x: spot.frame.minX - screen.frame.minX, y: spot.frame.minY - screen.frame.minY),
+            form: spot.form
+        )
+    }
+
+    /// The tip of a toolbar button, or no tip (`nil`). The tip is at the side of the toolbar that has room.
+    private func showTip(of button: ToolbarButton?) {
+        tipPanel?.close()
+        tipPanel = nil
+        guard let button = button, let panel = toolbarPanel else { return }
+        let middle = CGPoint(x: panel.frame.midX, y: panel.frame.midY)
+        guard let screen = shownScreens.first(where: { $0.frame.contains(middle) }) ?? pointerScreen else { return }
+        let tip = ToolbarTip(name: button.name, key: button.key)
+        // The toolbar view counts from its top. The screen counts from its bottom.
+        let buttonFrame = CGRect(
+            x: panel.frame.minX + button.frame.minX, y: panel.frame.maxY - button.frame.maxY,
+            width: button.frame.width, height: button.frame.height
+        )
+        tip.setFrameOrigin(ToolbarLayout.tipOrigin(
+            size: tip.frame.size, button: buttonFrame, toolbar: panel.frame,
+            isVertical: panel.toolbarView.form.isVertical, on: screen.visibleFrame
+        ))
+        tipPanel = tip
+        if canShow { tip.orderFrontRegardless() }
     }
 
     /// Drawing or click-through: who gets the mouse and the keyboard.
@@ -165,6 +223,8 @@ final class DrawController: DrawControlling {
         }
         screenObserver = nil
         keysObserver = nil
+        // The tip and its timer go away with the toolbar.
+        toolbarPanel?.toolbarView.hideTip()
         let closed: [NSWindow] = overlays + (toolbarPanel.map { [$0] } ?? [])
         overlays = []
         toolbarPanel = nil
@@ -192,10 +252,10 @@ final class DrawController: DrawControlling {
         guard shownMode != .off, needsNewOverlays else { return }
         shownScreens = newScreens
         session.setDisplays(newScreens.map { $0.display })
-        // The toolbar stays where the user put it, unless its screen is gone.
-        if let panel = toolbarPanel {
-            let middle = CGPoint(x: panel.frame.midX, y: panel.frame.midY)
-            if !newScreens.contains(where: { $0.frame.contains(middle) }) { moveToBottomCentre(panel) }
+        // The toolbar stays where it is, unless it is no longer fully in the visible part of a screen.
+        if let panel = toolbarPanel, !newScreens.contains(where: { $0.visibleFrame.contains(panel.frame) }) {
+            panel.toolbarView.hideTip()
+            placeToolbar(panel)
         }
         showMode()
     }
